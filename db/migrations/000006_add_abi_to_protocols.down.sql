@@ -1,0 +1,1 @@
+ALTER TABLE protocols DROP COLUMN abi;

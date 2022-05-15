@@ -1,0 +1,1 @@
+ALTER TABLE protocol_instances DROP COLUMN lastBlockRead;

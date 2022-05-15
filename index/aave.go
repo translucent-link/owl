@@ -1,22 +1,29 @@
 package index
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
-	"path"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/translucent-link/owl/graph/model"
 )
+
+type Transaction struct {
+	TxHash string
+}
+
+func (e Transaction) Txn() string {
+	return e.TxHash
+}
 
 type AaveTransferEvent struct {
 	From  common.Address
 	To    common.Address
 	Value *big.Int
+	Transaction
 }
 
 func (e AaveTransferEvent) String() string {
@@ -28,19 +35,18 @@ func (e AaveTransferEvent) Type() string {
 }
 
 type AaveLiquidationCallEvent struct {
-	_collateral                 common.Address
-	_reserve                    common.Address
-	_user                       common.Address
-	_purchaseAmount             *big.Int
-	_liquidatedCollateralAmount *big.Int
-	_accruedBorrowInterest      *big.Int
-	_liquidator                 common.Address
-	_receiveAToken              bool
-	_timestamp                  *big.Int
+	CollateralAsset            common.Address
+	DebtAsset                  common.Address
+	User                       common.Address
+	DebtToCover                *big.Int
+	LiquidatedCollateralAmount *big.Int
+	Liquidator                 common.Address
+	ReceiveAToken              bool
+	Transaction
 }
 
 func (e AaveLiquidationCallEvent) String() string {
-	return fmt.Sprintf("liquidator: %s, borrower: %s, tokenCollateral: %s, repayAmount: %s, seizeTokens: %s", e._liquidator, e._user, e._collateral, e._purchaseAmount.String(), e._liquidatedCollateralAmount.String())
+	return fmt.Sprintf("LiquidationCall liquidator: %s, borrower: %s, tokenCollateral: %s, repayAmount: %s, seizeTokens: %s, txn: %s", e.Liquidator, e.User, e.CollateralAsset, e.DebtToCover.String(), e.LiquidatedCollateralAmount.String(), e.TxHash)
 }
 
 func (e AaveLiquidationCallEvent) Type() string {
@@ -48,19 +54,18 @@ func (e AaveLiquidationCallEvent) Type() string {
 }
 
 type AaveBorrowEvent struct {
-	_reserve               common.Address
-	_user                  common.Address
-	_amount                *big.Int
-	_borrowRateMode        *big.Int
-	_borrowRate            *big.Int
-	_originationFee        *big.Int
-	_borrowBalanceIncrease *big.Int
-	_referral              *big.Int
-	_timestamp             *big.Int
+	Reserve          common.Address
+	User             common.Address
+	OnBehalfOf       common.Address
+	Amount           *big.Int
+	InterestRateMode uint8
+	BorrowRate       *big.Int
+	ReferralCode     *big.Int
+	Transaction
 }
 
 func (e AaveBorrowEvent) String() string {
-	return fmt.Sprintf("borrower: %s, borrowAmount: %s", e._user, e._amount.String())
+	return fmt.Sprintf("Borrow borrower: %s, borrowAmount: %s, reserve: %s, txn: %s", e.User, e.Amount.String(), e.Reserve, e.TxHash)
 }
 
 func (e AaveBorrowEvent) Type() string {
@@ -68,79 +73,49 @@ func (e AaveBorrowEvent) Type() string {
 }
 
 type AaveRepay struct {
-	_reserve               common.Address
-	_user                  common.Address
-	_repayer               common.Address
-	_amountMinusFees       *big.Int
-	_fees                  *big.Int
-	_borrowBalanceIncrease *big.Int
-	_timestamp             *big.Int
+	Reserve    common.Address
+	User       common.Address
+	Repayer    common.Address
+	Amount     *big.Int
+	UseATokens bool
+	Transaction
 }
 
 func (e AaveRepay) String() string {
-	return fmt.Sprintf("payer: %s, repayAmount: %s, borrower: %s", e._repayer.Hex(), e._amountMinusFees.String(), e._user.Hex())
+	return fmt.Sprintf("Repay payer: %s, amount: %s, borrower: %s, txn: %s", e.Repayer.Hex(), e.Amount.String(), e.User.Hex(), e.TxHash)
 }
 
 func (e AaveRepay) Type() string {
 	return "AaveRepay"
 }
 
-func unpackAaveEvent(abi abi.ABI, le LoanEvent, data []byte) (Typable, error) {
-	if le.TopicName == "Borrow" {
+func UnpackAaveEvent(abi abi.ABI, eventDefn *model.EventDefn, log types.Log) (Typable, error) {
+	if eventDefn.TopicName == "Borrow" {
 		event := AaveBorrowEvent{}
-		err := abi.UnpackIntoInterface(&event, le.TopicName, data)
+		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
+		event.TxHash = log.TxHash.String()
+		event.Reserve = common.HexToAddress(log.Topics[1].Hex())
+		event.OnBehalfOf = common.HexToAddress(log.Topics[2].Hex())
 		return event, err
-	} else if le.TopicName == "Repay" {
+	} else if eventDefn.TopicName == "Repay" {
 		event := AaveRepay{}
-		err := abi.UnpackIntoInterface(&event, le.TopicName, data)
+		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
+		event.TxHash = log.TxHash.String()
+		event.Reserve = common.HexToAddress(log.Topics[1].Hex())
+		event.User = common.HexToAddress(log.Topics[2].Hex())
+		event.Repayer = common.HexToAddress(log.Topics[3].Hex())
 		return event, err
-	} else if le.TopicName == "LiquidationCall" {
+	} else if eventDefn.TopicName == "LiquidationCall" {
+		fmt.Printf("Topics: %d\n", len(log.Topics))
 		event := AaveLiquidationCallEvent{}
-		err := abi.UnpackIntoInterface(&event, le.TopicName, data)
+		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
+		event.TxHash = log.TxHash.String()
 		return event, err
-	} else if le.TopicName == "Transfer" {
+	} else if eventDefn.TopicName == "Transfer" {
 		event := AaveTransferEvent{}
-		err := abi.UnpackIntoInterface(&event, le.TopicName, data)
+		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
+		event.TxHash = log.TxHash.String()
 		return event, err
 	}
-	return nil, errors.New(fmt.Sprintf("%s topic name is not supported", le.TopicName))
-}
-
-func GetAEthDefn(abiPath string) (Protocol, error) {
-	borrowEventSignature := []byte("Borrow(address,address,uint256,uint256,uint256,uint256,uint256,uint16,uint256)")
-	borrowTopicHash := crypto.Keccak256Hash(borrowEventSignature)
-
-	repayEventSignature := []byte("Repay(address,address,address,uint256,uint256,uint256,uint256)")
-	repayTopicHash := crypto.Keccak256Hash(repayEventSignature)
-
-	liquidationCallEventSignature := []byte("LiquidationCall(address,address,address,uint256,uint256,uint256,address,bool,uint256)")
-	liquidateCallTopicHash := crypto.Keccak256Hash(liquidationCallEventSignature)
-
-	transferEventSignature := []byte("Transfer(address,address,uint256)")
-	transferTopicHash := crypto.Keccak256Hash(transferEventSignature)
-
-	f, err := os.Open(path.Join(abiPath, "aETH.abi"))
-	if err != nil {
-		return Protocol{}, err
-	}
-	contractAbi, err := abi.JSON(bufio.NewReader(f))
-	if err != nil {
-		return Protocol{}, err
-	}
-
-	return Protocol{
-		"AEth",
-		common.HexToAddress("0x3a3A65aAb0dd2A17E3F1947bA16138cd37d08c04"),
-		[]LoanEvent{
-			{"Borrow", borrowTopicHash, borrowTopicHash.Hex()},
-			{"Repay", repayTopicHash, repayTopicHash.Hex()},
-			{"LiquidationCall", liquidateCallTopicHash, liquidateCallTopicHash.Hex()},
-			{"Transfer", transferTopicHash, transferTopicHash.Hex()},
-		},
-		[]common.Hash{
-			borrowTopicHash, repayTopicHash, liquidateCallTopicHash, transferTopicHash,
-		},
-		contractAbi,
-		unpackAaveEvent,
-	}, nil
+	return nil, errors.New(fmt.Sprintf("%s topic name is not supported", eventDefn.TopicName))
 }

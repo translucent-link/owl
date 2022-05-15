@@ -1,0 +1,23 @@
+version: "2.2"
+services:
+  db:
+    image: postgres:13-alpine
+    restart: always
+    ports:
+      - 5432:5432
+    networks:
+      - owl
+    environment:
+      POSTGRES_PASSWORD: hoothoo
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8082:8080
+    networks:
+      - owl
+
+networks:
+  owl:
+    driver: bridge

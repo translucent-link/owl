@@ -1,0 +1,1 @@
+ALTER TABLE protocols ADD COLUMN abi TEXT;

@@ -1,0 +1,1 @@
+ALTER TABLE protocol_instances ADD CONSTRAINT uniq_protocol_chain UNIQUE (protocolId, chainId);

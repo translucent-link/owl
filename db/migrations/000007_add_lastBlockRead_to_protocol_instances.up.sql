@@ -1,0 +1,1 @@
+ALTER TABLE protocol_instances ADD COLUMN lastBlockRead TEXT NOT NULL DEFAULT 0;

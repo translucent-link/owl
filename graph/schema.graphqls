@@ -1,0 +1,72 @@
+directive @goField(forceResolver: Boolean, name: String) on INPUT_FIELD_DEFINITION
+    | FIELD_DEFINITION
+
+type Chain {
+  id: ID!
+  name: String!
+  rpcUrl: String!
+  blockFetchSize: Int!
+  protocols: [Protocol]!      @goField(forceResolver: true)
+}
+
+input NewChain {
+  name: String!
+  rpcUrl: String!
+  blockFetchSize: Int!
+}
+
+
+type Protocol {
+  id: ID!
+  name: String!
+  abi: String!
+  scannableEvents: [EventDefn]! @goField(forceResolver: true)
+}
+
+input NewProtocol {
+  name: String!
+  abi: String!
+}
+
+type ProtocolInstance {
+  id: ID!
+  protocol: Protocol!         @goField(forceResolver: true)
+  chain: Chain!               @goField(forceResolver: true)
+  contractAddress: String!
+  firstBlockToRead: Int!
+  lastBlockRead: Int!
+}
+
+input NewProtocolInstance {
+  protocol: String!
+  chain: String!
+  contractAddress: String!
+  firstBlockToRead: Int!
+}
+
+type Query {
+  chains: [Chain!]!
+  protocols: [Protocol!]!
+  protocolInstances: [ProtocolInstance!]!
+}
+
+type Mutation {
+  createChain(input: NewChain!): Chain!
+  createProtocol(input: NewProtocol!): Protocol!
+  createProtocolInstance(input: NewProtocolInstance!): ProtocolInstance!
+  addEventDefnToProtocol(input: NewEventDefn): EventDefn!
+}
+
+type EventDefn {
+  id: ID!
+  topicName: String!
+  topicHashHex: String!
+  abiSignature: String!
+}
+
+input NewEventDefn {
+  protocol: String!
+  topicName: String!
+  abiSignature: String!
+}
+
