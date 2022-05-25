@@ -7,6 +7,7 @@ type Chain {
   rpcUrl: String!
   blockFetchSize: Int!
   protocols: [Protocol]!      @goField(forceResolver: true)
+  tokens: [Token]!            @goField(forceResolver: true)
 }
 
 input NewChain {
@@ -48,6 +49,9 @@ type Query {
   chains: [Chain!]!
   protocols: [Protocol!]!
   protocolInstances: [ProtocolInstance!]!
+  accounts(address: String): [Account]!
+  borrowers(top: Int): [Account]!
+  liquidators(top: Int): [Account]!
 }
 
 type Mutation {
@@ -68,5 +72,76 @@ input NewEventDefn {
   protocol: String!
   topicName: String!
   abiSignature: String!
+}
+
+scalar Time
+
+enum EventType {
+  Borrow  
+  Repay
+  Liquidation
+}
+
+interface Event {
+  id: ID!
+  type: EventType!
+  txhash: String!
+  blocknumber: Int!
+  occuredAt: Time!
+}
+
+type BorrowEvent implements Event {
+  id: ID!
+  type: EventType!
+  txhash: String!
+  blocknumber: Int!
+  occuredAt: Time!
+
+  borrower: Account!
+  amountBorrowed: Int!
+  token: Token!
+}
+
+type RepayEvent implements Event {
+  id: ID!
+  type: EventType!
+  txhash: String!
+  blocknumber: Int!
+  occuredAt: Time!
+
+  borrower: Account!
+  amountRepayed: Int!
+  token: Token!
+}
+
+type LiquidationEvent implements Event {
+  id: ID!
+  type: EventType!
+  txhash: String!
+  blocknumber: Int!
+  occuredAt: Time!
+
+  borrower: Account!
+  liquidator: Account!
+  amountRepayed: Int!
+  amountSeized: Int!
+  collateralToken: Token!
+  debtToken: Token!
+}
+
+union AnyEvent = BorrowEvent | RepayEvent | LiquidationEvent
+
+type Account {
+  id: ID!
+  address: String!
+  events: [AnyEvent]!          @goField(forceResolver: true)
+}
+
+type Token {
+  id: ID!
+  address: String!
+  name: String
+  ticker: String
+  decimals: Int!
 }
 

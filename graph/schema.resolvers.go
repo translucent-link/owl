@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -14,10 +15,47 @@ import (
 	"github.com/translucent-link/owl/graph/model"
 )
 
+func (r *accountResolver) Events(ctx context.Context, obj *model.Account) ([]model.AnyEvent, error) {
+	events := []model.AnyEvent{}
+	accountStore, err := model.NewAccountStore()
+	if err != nil {
+		return events, err
+	}
+	tokenStore, err := model.NewTokenStore()
+	if err != nil {
+		return events, err
+	}
+	eventStore, err := model.NewEventStore()
+	if err != nil {
+		return events, err
+	}
+	aEvents, err := eventStore.AllByAccount(obj.ID)
+	if err != nil {
+		return events, err
+	}
+	for _, aEvent := range aEvents {
+		var event model.AnyEvent
+		event, err = aEvent.AnyEvent(accountStore, tokenStore)
+		if err != nil {
+			return events, err
+		}
+		events = append(events, event)
+	}
+	return events, nil
+}
+
 func (r *chainResolver) Protocols(ctx context.Context, obj *model.Chain) ([]*model.Protocol, error) {
 	store, err := model.NewProtocolStore()
 	if err != nil {
 		return []*model.Protocol{}, err
+	}
+	return store.AllByChain(obj.ID)
+}
+
+func (r *chainResolver) Tokens(ctx context.Context, obj *model.Chain) ([]*model.Token, error) {
+	store, err := model.NewTokenStore()
+	if err != nil {
+		return []*model.Token{}, err
 	}
 	return store.AllByChain(obj.ID)
 }
@@ -104,6 +142,29 @@ func (r *queryResolver) ProtocolInstances(ctx context.Context) ([]*model.Protoco
 	return store.All()
 }
 
+func (r *queryResolver) Accounts(ctx context.Context, address *string) ([]*model.Account, error) {
+	store, err := model.NewAccountStore()
+	if err != nil {
+		return []*model.Account{}, err
+	}
+	if address != nil {
+		acc, err := store.FindByAddress(*address)
+		return []*model.Account{acc}, err
+	}
+	return []*model.Account{}, err
+}
+
+func (r *queryResolver) Borrowers(ctx context.Context, top *int) ([]*model.Account, error) {
+	return []*model.Account{}, fmt.Errorf("not implemented")
+}
+
+func (r *queryResolver) Liquidators(ctx context.Context, top *int) ([]*model.Account, error) {
+	return []*model.Account{}, fmt.Errorf("not implemented")
+}
+
+// Account returns generated.AccountResolver implementation.
+func (r *Resolver) Account() generated.AccountResolver { return &accountResolver{r} }
+
 // Chain returns generated.ChainResolver implementation.
 func (r *Resolver) Chain() generated.ChainResolver { return &chainResolver{r} }
 
@@ -121,6 +182,7 @@ func (r *Resolver) ProtocolInstance() generated.ProtocolInstanceResolver {
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+type accountResolver struct{ *Resolver }
 type chainResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type protocolResolver struct{ *Resolver }

@@ -1,5 +1,11 @@
 package model
 
+import (
+	"os"
+
+	"github.com/jmoiron/sqlx"
+)
+
 func Stores() (*ChainStore, *ProtocolStore, *ProtocolInstanceStore, error) {
 	protocolStore, err := NewProtocolStore()
 	if err != nil {
@@ -15,4 +21,8 @@ func Stores() (*ChainStore, *ProtocolStore, *ProtocolInstanceStore, error) {
 	}
 
 	return chainStore, protocolStore, protocolInstanceStore, nil
+}
+
+func DbConnect() (*sqlx.DB, error) {
+	return sqlx.Connect("pgx", os.Getenv("DATABASE_URL"))
 }

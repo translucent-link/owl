@@ -8,16 +8,20 @@ import (
 	"github.com/translucent-link/owl/cmd"
 	"github.com/urfave/cli/v2"
 
-	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/jackc/pgx/v4/stdlib"
+
+	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func setupDatabase(dbURL string) {
+
 	m, err := migrate.New("file://./db/migrations", dbURL)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	if err := m.Up(); err != nil && err.Error() != "no change" {
 		log.Fatal(err)
 	}

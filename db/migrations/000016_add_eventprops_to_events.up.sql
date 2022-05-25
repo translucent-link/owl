@@ -1,0 +1,10 @@
+ALTER TABLE events ADD COLUMN borrowTokenId integer NULL references tokens;
+ALTER TABLE events ADD COLUMN repayTokenId integer NULL references tokens;
+ALTER TABLE events ADD COLUMN collateralTokenId integer NULL references tokens;
+ALTER TABLE events ADD COLUMN debtTokenId integer NULL references tokens;
+ALTER TABLE events ADD COLUMN borrowerAccountId integer NULL references accounts;
+ALTER TABLE events ADD COLUMN repayerAccountId integer NULL references accounts;
+ALTER TABLE events ADD COLUMN liquidatorAccountId integer NULL references accounts;
+ALTER TABLE events ADD COLUMN amountBorrowed integer NOT NULL default 0;
+ALTER TABLE events ADD COLUMN amountRepayed integer NOT NULL default 0;
+ALTER TABLE events ADD COLUMN amountSeized integer NOT NULL default 0;

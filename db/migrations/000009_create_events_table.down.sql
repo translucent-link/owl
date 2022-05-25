@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS events_type;
+DROP TABLE IF EXISTS events;

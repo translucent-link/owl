@@ -1,0 +1,10 @@
+ALTER TABLE events DROP COLUMN borrowTokenId;
+ALTER TABLE events DROP COLUMN amountBorrowed;
+ALTER TABLE events DROP COLUMN borrowerAccountId;
+ALTER TABLE events DROP COLUMN repayTokenId;
+ALTER TABLE events DROP COLUMN amountRepayed;
+ALTER TABLE events DROP COLUMN repayerAccountId;
+ALTER TABLE events DROP COLUMN liquidatorAccountId;
+ALTER TABLE events DROP COLUMN collateralTokenId;
+ALTER TABLE events DROP COLUMN debtTokenId;
+ALTER TABLE events DROP COLUMN amountSeized;

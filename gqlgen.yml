@@ -53,6 +53,20 @@ models:
     fields:
       protocols:
         resolver: true
+      tokens:
+        resolver: true
+  Account:
+    fields:
+      events:
+        resolver: true
+  Event:
+    fields:
+      borrowEvent:
+        resolver: true
+      repayEvent:
+        resolver: true
+      liquidationEvent:
+        resolver: true
   Protocol:
     fields:
       scannableEvents:

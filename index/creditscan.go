@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/pkg/errors"
 	"github.com/translucent-link/owl/graph/model"
 )
 
@@ -26,14 +27,29 @@ func grabUnpacker(protocol *model.Protocol) (Unpacker, error) {
 
 func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.Protocol, protocolInstance *model.ProtocolInstance, scannableEvents []*model.EventDefn) error {
 
+	eventStore, err := model.NewEventStore()
+	if err != nil {
+		return errors.Wrap(err, "Unable to create EventStore")
+	}
+
+	accountStore, err := model.NewAccountStore()
+	if err != nil {
+		return errors.Wrap(err, "Unable to create AccountStore")
+	}
+
+	tokenStore, err := model.NewTokenStore()
+	if err != nil {
+		return errors.Wrap(err, "Unable to create TokenStore")
+	}
+
 	protocolInstanceStore, err := model.NewProtocolInstanceStore()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to create ProtocolInstanceStore")
 	}
 	unpacker, err := grabUnpacker(protocol)
 	contractAbi, err := abi.JSON(strings.NewReader(protocol.Abi))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Unable to parse ABI")
 	}
 
 	unknownTopics := []string{}
@@ -42,7 +58,7 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 
 	highestBlock, err := FindFirstBlock(client, 0)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Finding first block")
 	}
 	toBlock := big.NewInt(highestBlock)
 	step := big.NewInt(int64(chain.BlockFetchSize))
@@ -69,19 +85,101 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 
 		logs, err := client.FilterLogs(context.Background(), query)
 		if err != nil {
-			log.Println(err)
+			log.Println(errors.Wrap(err, "Filtering logs"))
 		} else {
 			for _, vLog := range logs {
 				found := false
 				for _, eventDefn := range scannableEvents {
 					if vLog.Topics[0].Hex() == eventDefn.TopicHashHex {
 						found = true
-						event, err := unpacker(contractAbi, eventDefn, vLog)
+						event, err := unpacker(contractAbi, protocolInstance, eventDefn, vLog)
 						if err != nil {
-							log.Fatal(err)
+							log.Println(errors.Wrap(err, "Unable to unpack event"))
 						}
 
-						log.Println(vLog.Topics[0].Hex())
+						// occuredAt =
+						occuredAt, err := GetBlockTimestamp(client, big.NewInt(int64(vLog.BlockNumber)))
+						if err != nil {
+							log.Println(err)
+						}
+
+						// borroweAccountId =
+						if event.Borrowable != nil {
+							borrower, err := accountStore.FindOrCreateByAddress(event.Borrowable.GetBorrower().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create borrower for Borrow event"))
+							}
+							borrowToken, err := tokenStore.FindOrCreateByAddress(event.Borrowable.GetBorrowToken().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create token for Borrow event"))
+							}
+							_, err = eventStore.StoreBorrowEvent(
+								protocolInstance.ID,
+								eventDefn.ID,
+								vLog.TxHash.Hex(),
+								int64(vLog.BlockNumber),
+								occuredAt,
+								borrower.ID,
+								event.Borrowable.GetBorrowAmount(),
+								borrowToken.ID)
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable store Borrow event"))
+							}
+						} else if event.Repayable != nil {
+							borrower, err := accountStore.FindOrCreateByAddress(event.Repayable.GetBorrower().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create borrower for Repay event"))
+							}
+							repayToken, err := tokenStore.FindOrCreateByAddress(event.Repayable.GetBorrowToken().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create token for Repay event"))
+							}
+							_, err = eventStore.StoreRepayEvent(
+								protocolInstance.ID,
+								eventDefn.ID,
+								vLog.TxHash.Hex(),
+								int64(vLog.BlockNumber),
+								occuredAt,
+								borrower.ID,
+								event.Repayable.GetRepayAmount(),
+								repayToken.ID)
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable store Borrow event"))
+							}
+						} else if event.Liquidatable != nil {
+
+							borrower, err := accountStore.FindOrCreateByAddress(event.Liquidatable.GetBorrower().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create borrower for Liquidation event"))
+							}
+							liquidator, err := accountStore.FindOrCreateByAddress(event.Liquidatable.GetLiquidator().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create borrower for Liquidation event"))
+							}
+							debtToken, err := tokenStore.FindOrCreateByAddress(event.Liquidatable.GetDebtToken().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create token for Repay event"))
+							}
+							collateralToken, err := tokenStore.FindOrCreateByAddress(event.Liquidatable.GetCollateralToken().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create token for Repay event"))
+							}
+
+							_, err = eventStore.StoreLiquidationEvent(
+								protocolInstance.ID,
+								eventDefn.ID,
+								vLog.TxHash.Hex(),
+								int64(vLog.BlockNumber),
+								occuredAt,
+								borrower.ID,
+								liquidator.ID,
+								event.Liquidatable.GetRepayAmount(),
+								event.Liquidatable.GetSeizeAmount(),
+								debtToken.ID,
+								collateralToken.ID)
+						}
+
+						// log.Println(vLog.Topics[0].Hex())
 						log.Println(event)
 						break
 					}
@@ -95,7 +193,10 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 				}
 			}
 		}
-		protocolInstanceStore.UpdateLastBlockRead(protocolInstance.ID, uint(endBlock.Int64()))
+		err = protocolInstanceStore.UpdateLastBlockRead(protocolInstance.ID, uint(endBlock.Int64()))
+		if err != nil {
+			return errors.Wrap(err, "Updating last block")
+		}
 
 		currentBlock = big.NewInt(endBlock.Int64())
 	}

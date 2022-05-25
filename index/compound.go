@@ -17,6 +17,7 @@ type CompoundLiquidateBorrowEvent struct {
 	Liquidator       common.Address
 	Borrower         common.Address
 	CTokenCollateral common.Address
+	DebtToken        common.Address
 }
 
 func (e CompoundLiquidateBorrowEvent) String() string {
@@ -27,11 +28,48 @@ func (e CompoundLiquidateBorrowEvent) Type() string {
 	return "LiquidateBorrow"
 }
 
+func (e CompoundLiquidateBorrowEvent) GetRepayAmount() *big.Int {
+	return e.RepayAmount
+}
+
+func (e CompoundLiquidateBorrowEvent) GetSeizeAmount() *big.Int {
+	return e.SeizeTokens
+}
+
+func (e CompoundLiquidateBorrowEvent) GetBorrower() common.Address {
+	return e.Borrower
+}
+
+func (e CompoundLiquidateBorrowEvent) GetDebtToken() common.Address {
+	return e.DebtToken
+}
+
+func (e CompoundLiquidateBorrowEvent) GetCollateralToken() common.Address {
+	return e.CTokenCollateral
+}
+
+func (e CompoundLiquidateBorrowEvent) GetLiquidator() common.Address {
+	return e.Liquidator
+}
+
 type CompoundBorrowEvent struct {
 	BorrowAmount   *big.Int
 	AccountBorrows *big.Int
 	TotalBorrows   *big.Int
 	Borrower       common.Address
+	BorrowToken    common.Address
+}
+
+func (e CompoundBorrowEvent) GetBorrowAmount() *big.Int {
+	return e.BorrowAmount
+}
+
+func (e CompoundBorrowEvent) GetBorrower() common.Address {
+	return e.Borrower
+}
+
+func (e CompoundBorrowEvent) GetBorrowToken() common.Address {
+	return e.BorrowToken
 }
 
 func (e CompoundBorrowEvent) String() string {
@@ -48,6 +86,7 @@ type CompoundRepayBorrowEvent struct {
 	TotalBorrows   *big.Int
 	Borrower       common.Address
 	Payer          common.Address
+	BorrowToken    common.Address
 }
 
 func (e CompoundRepayBorrowEvent) String() string {
@@ -58,54 +97,38 @@ func (e CompoundRepayBorrowEvent) Type() string {
 	return "RepayBorrow"
 }
 
-func UnpackCompoundEvent(abi abi.ABI, eventDefn *model.EventDefn, log types.Log) (Typable, error) {
-	if eventDefn.TopicName == "Borrow" {
-		event := CompoundBorrowEvent{}
-		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
-		return event, err
-	} else if eventDefn.TopicName == "RepayBorrow" {
-		event := CompoundRepayBorrowEvent{}
-		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
-		return event, err
-	} else if eventDefn.TopicName == "LiquidateBorrow" {
-		event := CompoundLiquidateBorrowEvent{}
-		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
-		return event, err
-	}
-	return nil, errors.New(fmt.Sprintf("%s topic name is not supported", eventDefn.TopicName))
+func (e CompoundRepayBorrowEvent) GetRepayAmount() *big.Int {
+	return e.RepayAmount
 }
 
-// func GetCEthDefn(abiPath string) (Protocol, error) {
-// 	borrowEventSignature := []byte("Borrow(address,uint256,uint256,uint256)")
-// 	borrowTopicHash := crypto.Keccak256Hash(borrowEventSignature)
+func (e CompoundRepayBorrowEvent) GetBorrower() common.Address {
+	return e.Borrower
+}
 
-// 	repayBorrowEventSignature := []byte("RepayBorrow(address,address,uint256,uint256,uint256)")
-// 	repayBorrowTopicHash := crypto.Keccak256Hash(repayBorrowEventSignature)
+func (e CompoundRepayBorrowEvent) GetBorrowToken() common.Address {
+	return e.BorrowToken
+}
 
-// 	liquidationBorrowEventSignature := []byte("LiquidateBorrow(address,address,uint256,address,uint256)")
-// 	liquidateBorrowTopicHash := crypto.Keccak256Hash(liquidationBorrowEventSignature)
+func (e CompoundRepayBorrowEvent) GetRepayer() common.Address {
+	return e.Payer
+}
 
-// 	f, err := os.Open(path.Join(abiPath, "cETH.abi"))
-// 	if err != nil {
-// 		return Protocol{}, err
-// 	}
-// 	contractAbi, err := abi.JSON(bufio.NewReader(f))
-// 	if err != nil {
-// 		return Protocol{}, err
-// 	}
-
-// 	return Protocol{
-// 		"CEth",
-// 		common.HexToAddress("0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5"),
-// 		[]LoanEvent{
-// 			{"Borrow", borrowTopicHash, borrowTopicHash.Hex()},
-// 			{"RepayBorrow", repayBorrowTopicHash, repayBorrowTopicHash.Hex()},
-// 			{"LiquidateBorrow", liquidateBorrowTopicHash, liquidateBorrowTopicHash.Hex()},
-// 		},
-// 		[]common.Hash{
-// 			borrowTopicHash, repayBorrowTopicHash, liquidateBorrowTopicHash,
-// 		},
-// 		contractAbi,
-// 		unpackCompoundEvent,
-// 	}, nil
-// }
+func UnpackCompoundEvent(abi abi.ABI, protocolInstance *model.ProtocolInstance, eventDefn *model.EventDefn, log types.Log) (PossibleEvent, error) {
+	if eventDefn.TopicName == "Borrow" {
+		event := CompoundBorrowEvent{}
+		event.BorrowToken = common.HexToAddress(protocolInstance.ContractAddress)
+		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
+		return PossibleEvent{Borrowable: event}, err
+	} else if eventDefn.TopicName == "RepayBorrow" {
+		event := CompoundRepayBorrowEvent{}
+		event.BorrowToken = common.HexToAddress(protocolInstance.ContractAddress)
+		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
+		return PossibleEvent{Repayable: event}, err
+	} else if eventDefn.TopicName == "LiquidateBorrow" {
+		event := CompoundLiquidateBorrowEvent{}
+		event.DebtToken = common.HexToAddress(protocolInstance.ContractAddress)
+		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
+		return PossibleEvent{Liquidatable: event}, err
+	}
+	return PossibleEvent{}, errors.New(fmt.Sprintf("%s topic name is not supported", eventDefn.TopicName))
+}

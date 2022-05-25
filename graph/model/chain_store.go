@@ -1,8 +1,6 @@
 package model
 
 import (
-	"os"
-
 	"github.com/jmoiron/sqlx"
 )
 
@@ -11,7 +9,7 @@ type ChainStore struct {
 }
 
 func NewChainStore() (*ChainStore, error) {
-	db, err := sqlx.Connect("postgres", os.Getenv("DATABASE_URL"))
+	db, err := DbConnect()
 	return &ChainStore{db: db}, err
 }
 

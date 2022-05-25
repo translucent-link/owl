@@ -2,7 +2,6 @@ package model
 
 import (
 	"errors"
-	"os"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -12,7 +11,7 @@ type ProtocolStore struct {
 }
 
 func NewProtocolStore() (*ProtocolStore, error) {
-	db, err := sqlx.Connect("postgres", os.Getenv("DATABASE_URL"))
+	db, err := DbConnect()
 	return &ProtocolStore{db: db}, err
 }
 
@@ -71,5 +70,11 @@ func (s *ProtocolStore) FindEventById(id int) (*EventDefn, error) {
 func (s *ProtocolStore) AllEventsByProtocol(id int) ([]*EventDefn, error) {
 	events := []*EventDefn{}
 	err := s.db.Select(&events, "select id, topicName, topicHashHex, abiSignature from event_definitions where protocolId=$1", id)
+	return events, err
+}
+
+func (s *ProtocolStore) AllEventsByProtocolAndTopicName(id int, topicName string) ([]*EventDefn, error) {
+	events := []*EventDefn{}
+	err := s.db.Select(&events, "select id, topicName, topicHashHex, abiSignature from event_definitions where protocolId=$1 and topicName=$2", id, topicName)
 	return events, err
 }
