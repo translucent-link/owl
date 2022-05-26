@@ -32,7 +32,7 @@ func init() {
 	log.Println("Initialised  Scan channel")
 	go func() {
 		req := <-ScanChannel
-		log.Printf("Received Scan Request: %v", req)
+		log.Println("Received Scan Request")
 		ScanHistory(req.Client, req.Chain, req.Protocol, req.ProtocolInstance, req.ScannableEvents)
 	}()
 }
@@ -207,7 +207,7 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 						}
 
 						// log.Println(vLog.Topics[0].Hex())
-						log.Println(event)
+						// log.Println(event)
 						break
 					}
 				}

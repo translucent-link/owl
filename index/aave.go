@@ -155,7 +155,7 @@ func (e AaveSupply) GetDepositAmount() *big.Int {
 }
 
 func (e AaveSupply) GetDepositor() common.Address {
-	return e.OnBehalfOf
+	return e.User
 }
 
 func (e AaveSupply) GetDepositToken() common.Address {
@@ -163,7 +163,7 @@ func (e AaveSupply) GetDepositToken() common.Address {
 }
 
 func (e AaveSupply) String() string {
-	return fmt.Sprintf("despositor: %s, despositAmount: %s", e.OnBehalfOf, e.Amount.String())
+	return fmt.Sprintf("User: %s, OnBehalfOf: %s, despositAmount: %s, token: %s", e.User, e.OnBehalfOf, e.Amount.String(), e.Reserve)
 }
 
 func (e AaveSupply) Type() string {
@@ -190,11 +190,17 @@ func UnpackAaveEvent(abi abi.ABI, protocolInstance *model.ProtocolInstance, even
 		event := AaveLiquidationCallEvent{}
 		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
 		event.TxHash = log.TxHash.String()
+		event.CollateralAsset = common.HexToAddress(string(log.Topics[1].Hex()))
+		event.DebtAsset = common.HexToAddress(string(log.Topics[2].Hex()))
+		event.User = common.HexToAddress(string(log.Topics[3].Hex()))
 		return PossibleEvent{Liquidatable: event}, err
 	} else if eventDefn.TopicName == "Supply" {
 		event := AaveSupply{}
 		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
 		event.TxHash = log.TxHash.String()
+		event.Reserve = common.HexToAddress(log.Topics[1].Hex())
+		event.User = common.HexToAddress(log.Topics[2].Hex())
+		event.OnBehalfOf = common.HexToAddress(log.Topics[3].Hex())
 		return PossibleEvent{Depositable: event}, err
 	}
 	return PossibleEvent{}, errors.New(fmt.Sprintf("%s topic name is not supported", eventDefn.TopicName))

@@ -73,7 +73,7 @@
   "supplyAave": {
     "protocol": "Aave",
     "topicName": "Supply",
-    "abiSignature": "Borrow(address,address,address,uint256,uint16)"
+    "abiSignature": "Supply(address,address,address,uint256,uint16)"
   },
   "borrowAave": {
     "protocol": "Aave",
