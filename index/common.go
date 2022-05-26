@@ -21,6 +21,13 @@ type Chain struct {
 	BlockFetchSize int
 }
 
+type Depositable interface {
+	GetDepositAmount() *big.Int
+	GetDepositor() common.Address
+	GetDepositToken() common.Address
+	Typable
+}
+
 type Borrowable interface {
 	GetBorrowAmount() *big.Int
 	GetBorrower() common.Address
@@ -50,6 +57,7 @@ type PossibleEvent struct {
 	Borrowable   Borrowable
 	Repayable    Repayable
 	Liquidatable Liquidatable
+	Depositable  Depositable
 }
 
 type Typable interface {
@@ -60,12 +68,12 @@ type Transactional interface {
 	Txn() string
 }
 
-func debugPrint(msg string, value interface{}) {
+func DebugPrint(msg string, value interface{}) {
 	fmt.Printf("%s %#v\n", msg, value)
 }
 
 func handleLogEvent(vLog types.Log) {
-	debugPrint("Log Event", vLog)
+	DebugPrint("Log Event", vLog)
 }
 
 func GetClient(ethURL string) (*ethclient.Client, error) {

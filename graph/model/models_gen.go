@@ -46,6 +46,20 @@ type Chain struct {
 	Tokens         []*Token    `json:"tokens"`
 }
 
+type DepositEvent struct {
+	ID              int       `json:"id"`
+	Type            EventType `json:"type"`
+	Txhash          string    `json:"txhash"`
+	Blocknumber     int       `json:"blocknumber"`
+	OccuredAt       time.Time `json:"occuredAt"`
+	Depositor       *Account  `json:"depositor"`
+	AmountDeposited int       `json:"amountDeposited"`
+	Token           *Token    `json:"token"`
+}
+
+func (DepositEvent) IsEvent()    {}
+func (DepositEvent) IsAnyEvent() {}
+
 type EventDefn struct {
 	ID           int    `json:"id"`
 	TopicName    string `json:"topicName"`
@@ -138,17 +152,19 @@ const (
 	EventTypeBorrow      EventType = "Borrow"
 	EventTypeRepay       EventType = "Repay"
 	EventTypeLiquidation EventType = "Liquidation"
+	EventTypeDeposit     EventType = "Deposit"
 )
 
 var AllEventType = []EventType{
 	EventTypeBorrow,
 	EventTypeRepay,
 	EventTypeLiquidation,
+	EventTypeDeposit,
 }
 
 func (e EventType) IsValid() bool {
 	switch e {
-	case EventTypeBorrow, EventTypeRepay, EventTypeLiquidation:
+	case EventTypeBorrow, EventTypeRepay, EventTypeLiquidation, EventTypeDeposit:
 		return true
 	}
 	return false

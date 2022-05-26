@@ -75,6 +75,17 @@ type ComplexityRoot struct {
 		Tokens         func(childComplexity int) int
 	}
 
+	DepositEvent struct {
+		AmountDeposited func(childComplexity int) int
+		Blocknumber     func(childComplexity int) int
+		Depositor       func(childComplexity int) int
+		ID              func(childComplexity int) int
+		OccuredAt       func(childComplexity int) int
+		Token           func(childComplexity int) int
+		Txhash          func(childComplexity int) int
+		Type            func(childComplexity int) int
+	}
+
 	EventDefn struct {
 		AbiSignature func(childComplexity int) int
 		ID           func(childComplexity int) int
@@ -310,6 +321,62 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Chain.Tokens(childComplexity), true
+
+	case "DepositEvent.amountDeposited":
+		if e.complexity.DepositEvent.AmountDeposited == nil {
+			break
+		}
+
+		return e.complexity.DepositEvent.AmountDeposited(childComplexity), true
+
+	case "DepositEvent.blocknumber":
+		if e.complexity.DepositEvent.Blocknumber == nil {
+			break
+		}
+
+		return e.complexity.DepositEvent.Blocknumber(childComplexity), true
+
+	case "DepositEvent.depositor":
+		if e.complexity.DepositEvent.Depositor == nil {
+			break
+		}
+
+		return e.complexity.DepositEvent.Depositor(childComplexity), true
+
+	case "DepositEvent.id":
+		if e.complexity.DepositEvent.ID == nil {
+			break
+		}
+
+		return e.complexity.DepositEvent.ID(childComplexity), true
+
+	case "DepositEvent.occuredAt":
+		if e.complexity.DepositEvent.OccuredAt == nil {
+			break
+		}
+
+		return e.complexity.DepositEvent.OccuredAt(childComplexity), true
+
+	case "DepositEvent.token":
+		if e.complexity.DepositEvent.Token == nil {
+			break
+		}
+
+		return e.complexity.DepositEvent.Token(childComplexity), true
+
+	case "DepositEvent.txhash":
+		if e.complexity.DepositEvent.Txhash == nil {
+			break
+		}
+
+		return e.complexity.DepositEvent.Txhash(childComplexity), true
+
+	case "DepositEvent.type":
+		if e.complexity.DepositEvent.Type == nil {
+			break
+		}
+
+		return e.complexity.DepositEvent.Type(childComplexity), true
 
 	case "EventDefn.abiSignature":
 		if e.complexity.EventDefn.AbiSignature == nil {
@@ -836,6 +903,7 @@ enum EventType {
   Borrow  
   Repay
   Liquidation
+  Deposit
 }
 
 interface Event {
@@ -844,6 +912,18 @@ interface Event {
   txhash: String!
   blocknumber: Int!
   occuredAt: Time!
+}
+
+type DepositEvent implements Event {
+  id: ID!
+  type: EventType!
+  txhash: String!
+  blocknumber: Int!
+  occuredAt: Time!
+
+  depositor: Account!
+  amountDeposited: Int!
+  token: Token!
 }
 
 type BorrowEvent implements Event {
@@ -885,7 +965,7 @@ type LiquidationEvent implements Event {
   debtToken: Token!
 }
 
-union AnyEvent = BorrowEvent | RepayEvent | LiquidationEvent
+union AnyEvent = BorrowEvent | RepayEvent | LiquidationEvent | DepositEvent
 
 type Account {
   id: ID!
@@ -1838,6 +1918,378 @@ func (ec *executionContext) fieldContext_Chain_tokens(ctx context.Context, field
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Token_id(ctx, field)
+			case "address":
+				return ec.fieldContext_Token_address(ctx, field)
+			case "name":
+				return ec.fieldContext_Token_name(ctx, field)
+			case "ticker":
+				return ec.fieldContext_Token_ticker(ctx, field)
+			case "decimals":
+				return ec.fieldContext_Token_decimals(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Token", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DepositEvent_id(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DepositEvent_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNID2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DepositEvent_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DepositEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DepositEvent_type(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DepositEvent_type(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.EventType)
+	fc.Result = res
+	return ec.marshalNEventType2githubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐEventType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DepositEvent_type(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DepositEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type EventType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DepositEvent_txhash(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DepositEvent_txhash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Txhash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DepositEvent_txhash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DepositEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DepositEvent_blocknumber(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DepositEvent_blocknumber(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Blocknumber, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DepositEvent_blocknumber(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DepositEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DepositEvent_occuredAt(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DepositEvent_occuredAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.OccuredAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DepositEvent_occuredAt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DepositEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DepositEvent_depositor(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DepositEvent_depositor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Depositor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Account)
+	fc.Result = res
+	return ec.marshalNAccount2ᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐAccount(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DepositEvent_depositor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DepositEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Account_id(ctx, field)
+			case "address":
+				return ec.fieldContext_Account_address(ctx, field)
+			case "events":
+				return ec.fieldContext_Account_events(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Account", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DepositEvent_amountDeposited(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DepositEvent_amountDeposited(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AmountDeposited, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DepositEvent_amountDeposited(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DepositEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DepositEvent_token(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DepositEvent_token(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Token, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Token)
+	fc.Result = res
+	return ec.marshalNToken2ᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐToken(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DepositEvent_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DepositEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
@@ -6331,6 +6783,13 @@ func (ec *executionContext) _AnyEvent(ctx context.Context, sel ast.SelectionSet,
 			return graphql.Null
 		}
 		return ec._LiquidationEvent(ctx, sel, obj)
+	case model.DepositEvent:
+		return ec._DepositEvent(ctx, sel, &obj)
+	case *model.DepositEvent:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._DepositEvent(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -6340,6 +6799,13 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case model.DepositEvent:
+		return ec._DepositEvent(ctx, sel, &obj)
+	case *model.DepositEvent:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._DepositEvent(ctx, sel, obj)
 	case model.BorrowEvent:
 		return ec._BorrowEvent(ctx, sel, &obj)
 	case *model.BorrowEvent:
@@ -6580,6 +7046,83 @@ func (ec *executionContext) _Chain(ctx context.Context, sel ast.SelectionSet, ob
 				return innerFunc(ctx)
 
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var depositEventImplementors = []string{"DepositEvent", "Event", "AnyEvent"}
+
+func (ec *executionContext) _DepositEvent(ctx context.Context, sel ast.SelectionSet, obj *model.DepositEvent) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, depositEventImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DepositEvent")
+		case "id":
+
+			out.Values[i] = ec._DepositEvent_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "type":
+
+			out.Values[i] = ec._DepositEvent_type(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "txhash":
+
+			out.Values[i] = ec._DepositEvent_txhash(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "blocknumber":
+
+			out.Values[i] = ec._DepositEvent_blocknumber(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "occuredAt":
+
+			out.Values[i] = ec._DepositEvent_occuredAt(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "depositor":
+
+			out.Values[i] = ec._DepositEvent_depositor(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "amountDeposited":
+
+			out.Values[i] = ec._DepositEvent_amountDeposited(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "token":
+
+			out.Values[i] = ec._DepositEvent_token(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

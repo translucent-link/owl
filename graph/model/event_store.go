@@ -51,6 +51,14 @@ func (s *EventStore) StoreLiquidationEvent(protocolInstanceId int, eventDefiniti
 	return insertedId, err
 }
 
+func (s *EventStore) StoreDepositEvent(protocolInstanceId int, eventDefinitionId int, txHash string, blockNumber int64, occuredAt time.Time, depositorAccountId int, amountDeposited *big.Int, depositTokenId int) (int, error) {
+	var insertedId int
+	err := s.db.QueryRowx(
+		"insert into events (type, protocolInstanceId, eventDefinitionId, txHash, blockNumber, occuredAt, depositorAccountId, amountDeposited, depositTokenId) values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id",
+		"Deposit", protocolInstanceId, eventDefinitionId, txHash, blockNumber, occuredAt, depositorAccountId, amountDeposited.String(), depositTokenId).Scan(&insertedId)
+	return insertedId, err
+}
+
 type AllEvent struct {
 	// Common
 	ID                 int
@@ -60,6 +68,11 @@ type AllEvent struct {
 	Txhash             string
 	Blocknumber        int
 	OccuredAt          time.Time
+
+	// Borrow
+	DepositorAccountId *int
+	AmountDeposited    *int
+	DepositTokenId     *int
 
 	// Borrow
 	BorrowerAccountId *int

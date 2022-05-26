@@ -103,7 +103,6 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 							log.Println(err)
 						}
 
-						// borroweAccountId =
 						if event.Borrowable != nil {
 							borrower, err := accountStore.FindOrCreateByAddress(event.Borrowable.GetBorrower().Hex())
 							if err != nil {
@@ -124,6 +123,27 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 								borrowToken.ID)
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable store Borrow event"))
+							}
+						} else if event.Depositable != nil {
+							depositor, err := accountStore.FindOrCreateByAddress(event.Depositable.GetDepositor().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create borrower for Deposit event"))
+							}
+							depositToken, err := tokenStore.FindOrCreateByAddress(event.Depositable.GetDepositToken().Hex())
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable find/create token for Deposit event"))
+							}
+							_, err = eventStore.StoreDepositEvent(
+								protocolInstance.ID,
+								eventDefn.ID,
+								vLog.TxHash.Hex(),
+								int64(vLog.BlockNumber),
+								occuredAt,
+								depositor.ID,
+								event.Depositable.GetDepositAmount(),
+								depositToken.ID)
+							if err != nil {
+								log.Println(errors.Wrap(err, "Unable store Deposit event"))
 							}
 						} else if event.Repayable != nil {
 							borrower, err := accountStore.FindOrCreateByAddress(event.Repayable.GetBorrower().Hex())

@@ -113,6 +113,33 @@ func (e CompoundRepayBorrowEvent) GetRepayer() common.Address {
 	return e.Payer
 }
 
+type CompoundMintEvent struct {
+	MintAmount   *big.Int
+	MintTokens   *big.Int
+	Minter       common.Address
+	DepositToken common.Address
+}
+
+func (e CompoundMintEvent) GetDepositAmount() *big.Int {
+	return e.MintAmount
+}
+
+func (e CompoundMintEvent) GetDepositor() common.Address {
+	return e.Minter
+}
+
+func (e CompoundMintEvent) GetDepositToken() common.Address {
+	return e.DepositToken
+}
+
+func (e CompoundMintEvent) String() string {
+	return fmt.Sprintf("depositor: %s, despositAmount: %s, token %s", e.Minter, e.MintAmount.String(), e.DepositToken.Hex())
+}
+
+func (e CompoundMintEvent) Type() string {
+	return "Mint"
+}
+
 func UnpackCompoundEvent(abi abi.ABI, protocolInstance *model.ProtocolInstance, eventDefn *model.EventDefn, log types.Log) (PossibleEvent, error) {
 	if eventDefn.TopicName == "Borrow" {
 		event := CompoundBorrowEvent{}
@@ -129,6 +156,11 @@ func UnpackCompoundEvent(abi abi.ABI, protocolInstance *model.ProtocolInstance, 
 		event.DebtToken = common.HexToAddress(protocolInstance.ContractAddress)
 		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
 		return PossibleEvent{Liquidatable: event}, err
+	} else if eventDefn.TopicName == "Mint" {
+		event := CompoundMintEvent{}
+		err := abi.UnpackIntoInterface(&event, eventDefn.TopicName, log.Data)
+		event.DepositToken = common.HexToAddress(protocolInstance.ContractAddress)
+		return PossibleEvent{Depositable: event}, err
 	}
 	return PossibleEvent{}, errors.New(fmt.Sprintf("%s topic name is not supported", eventDefn.TopicName))
 }

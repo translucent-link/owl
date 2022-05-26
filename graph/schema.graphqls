@@ -80,6 +80,7 @@ enum EventType {
   Borrow  
   Repay
   Liquidation
+  Deposit
 }
 
 interface Event {
@@ -88,6 +89,18 @@ interface Event {
   txhash: String!
   blocknumber: Int!
   occuredAt: Time!
+}
+
+type DepositEvent implements Event {
+  id: ID!
+  type: EventType!
+  txhash: String!
+  blocknumber: Int!
+  occuredAt: Time!
+
+  depositor: Account!
+  amountDeposited: Int!
+  token: Token!
 }
 
 type BorrowEvent implements Event {
@@ -129,7 +142,7 @@ type LiquidationEvent implements Event {
   debtToken: Token!
 }
 
-union AnyEvent = BorrowEvent | RepayEvent | LiquidationEvent
+union AnyEvent = BorrowEvent | RepayEvent | LiquidationEvent | DepositEvent
 
 type Account {
   id: ID!
