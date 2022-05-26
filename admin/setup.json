@@ -103,7 +103,7 @@
   },
   "repayCETH": {
     "protocol": "Compound cETH",
-    "topicName": "Repay",
+    "topicName": "RepayBorrow",
     "abiSignature": "RepayBorrow(address,address,uint256,uint256,uint256)"
   },
   "liquidateBorrowCETH": {
@@ -124,7 +124,7 @@
   },
   "repayCUSDC": {
     "protocol": "Compound cUSDC",
-    "topicName": "Repay",
+    "topicName": "RepayBorrow",
     "abiSignature": "RepayBorrow(address,address,uint256,uint256,uint256)"
   },
   "liquidateBorrowCUSDC": {
@@ -145,7 +145,7 @@
   },
   "repayCUSDT": {
     "protocol": "Compound cUSDT",
-    "topicName": "Repay",
+    "topicName": "RepayBorrow",
     "abiSignature": "RepayBorrow(address,address,uint256,uint256,uint256)"
   },
   "liquidateBorrowCUSDT": {
@@ -166,7 +166,7 @@
   },
   "repayCDAI": {
     "protocol": "Compound cDAI",
-    "topicName": "Repay",
+    "topicName": "RepayBorrow",
     "abiSignature": "RepayBorrow(address,address,uint256,uint256,uint256)"
   },
   "liquidateBorrowCDAI": {
