@@ -6,14 +6,15 @@ package graph
 import (
 	"context"
 	"fmt"
-	"os"
+	"log"
+
+	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
 	"github.com/translucent-link/owl/graph/generated"
 	"github.com/translucent-link/owl/graph/model"
+	"github.com/translucent-link/owl/index"
 )
 
 func (r *accountResolver) Events(ctx context.Context, obj *model.Account) ([]model.AnyEvent, error) {
@@ -105,6 +106,47 @@ func (r *mutationResolver) AddEventDefnToProtocol(ctx context.Context, input *mo
 	topicSignature := []byte(input.AbiSignature)
 	topicHash := crypto.Keccak256Hash(topicSignature)
 	return stores.Protocol.AddEventDefn(input.Protocol, input.TopicName, topicHash.Hex(), input.AbiSignature)
+}
+
+func (r *mutationResolver) ScanProtocolInstance(ctx context.Context, input model.NewScan) (*model.ProtocolInstance, error) {
+	db, err := model.DbConnect()
+	if err != nil {
+		return &model.ProtocolInstance{}, errors.Wrap(err, "Unable to connect to DB in preparation of scanning")
+	}
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	protocol, err := stores.Protocol.FindByName(input.Protocol)
+	chain, err := stores.Chain.FindByName(input.Chain)
+
+	protocolInstance, err := stores.ProtocolInstance.FindByProtocolIdAndChainId(protocol.ID, chain.ID)
+	if err != nil {
+		return &model.ProtocolInstance{}, errors.Wrap(err, "Unable to connect to DB and fetch protocol instance")
+	}
+	scannableEvents, err := stores.Protocol.AllEventsByProtocol(protocol.ID)
+	if err != nil {
+		return &model.ProtocolInstance{}, errors.Wrap(err, "Retrieving list of scannable events")
+
+	}
+
+	client, err := index.GetClient(chain.RPCURL)
+	if err != nil {
+		return &model.ProtocolInstance{}, errors.Wrap(err, "Retrieving EVM client")
+	}
+
+	log.Printf("Scanning %s on %s", protocol.Name, chain.Name)
+
+	scanRequest := index.ScanRequest{
+		Client:           client,
+		Chain:            chain,
+		Protocol:         protocol,
+		ProtocolInstance: protocolInstance,
+		ScannableEvents:  scannableEvents,
+	}
+	index.ScanChannel <- scanRequest
+	log.Println("Scan Requested")
+
+	return protocolInstance, nil
 }
 
 func (r *protocolResolver) ScannableEvents(ctx context.Context, obj *model.Protocol) ([]*model.EventDefn, error) {
@@ -229,6 +271,3 @@ type queryResolver struct{ *Resolver }
 //  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
 //    it when you're done.
 //  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func Db() (*sqlx.DB, error) {
-	return sqlx.Connect("postgres", os.Getenv("DATABASE_URL"))
-}

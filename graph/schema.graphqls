@@ -59,6 +59,12 @@ type Mutation {
   createProtocol(input: NewProtocol!): Protocol!
   createProtocolInstance(input: NewProtocolInstance!): ProtocolInstance!
   addEventDefnToProtocol(input: NewEventDefn): EventDefn!
+  scanProtocolInstance(input: NewScan!): ProtocolInstance
+}
+
+input NewScan {
+  protocol: String!
+  chain: String!
 }
 
 type EventDefn {

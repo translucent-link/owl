@@ -108,6 +108,11 @@ type NewProtocolInstance struct {
 	FirstBlockToRead int    `json:"firstBlockToRead"`
 }
 
+type NewScan struct {
+	Protocol string `json:"protocol"`
+	Chain    string `json:"chain"`
+}
+
 type Protocol struct {
 	ID              int          `json:"id"`
 	Name            string       `json:"name"`

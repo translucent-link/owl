@@ -17,6 +17,26 @@ import (
 	"github.com/translucent-link/owl/graph/model"
 )
 
+type ScanRequest struct {
+	Client           *ethclient.Client
+	Chain            *model.Chain
+	Protocol         *model.Protocol
+	ProtocolInstance *model.ProtocolInstance
+	ScannableEvents  []*model.EventDefn
+}
+
+var ScanChannel chan ScanRequest
+
+func init() {
+	ScanChannel = make(chan ScanRequest)
+	log.Println("Initialised  Scan channel")
+	go func() {
+		req := <-ScanChannel
+		log.Printf("Received Scan Request: %v", req)
+		ScanHistory(req.Client, req.Chain, req.Protocol, req.ProtocolInstance, req.ScannableEvents)
+	}()
+}
+
 func grabUnpacker(protocol *model.Protocol) (Unpacker, error) {
 	if protocol.Name == "Aave" {
 		return UnpackAaveEvent, nil
@@ -40,7 +60,7 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 	}
 
 	unknownTopics := []string{}
-	currentBlock := big.NewInt(int64(protocolInstance.LastBlockRead))
+	currentBlock := big.NewInt(int64(protocolInstance.ScanStartBlock()))
 	endBlock := big.NewInt(currentBlock.Int64())
 
 	highestBlock, err := FindFirstBlock(client, 0)

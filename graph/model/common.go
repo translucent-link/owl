@@ -43,6 +43,5 @@ func DbConnect() (*sqlx.DB, error) {
 	if len(url) == 0 {
 		log.Println("DATABASE_URL is not set")
 	}
-	log.Printf("Connecting to %s", url)
 	return sqlx.Connect("pgx", url)
 }

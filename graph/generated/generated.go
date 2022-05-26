@@ -112,6 +112,7 @@ type ComplexityRoot struct {
 		CreateChain            func(childComplexity int, input model.NewChain) int
 		CreateProtocol         func(childComplexity int, input model.NewProtocol) int
 		CreateProtocolInstance func(childComplexity int, input model.NewProtocolInstance) int
+		ScanProtocolInstance   func(childComplexity int, input model.NewScan) int
 	}
 
 	Protocol struct {
@@ -171,6 +172,7 @@ type MutationResolver interface {
 	CreateProtocol(ctx context.Context, input model.NewProtocol) (*model.Protocol, error)
 	CreateProtocolInstance(ctx context.Context, input model.NewProtocolInstance) (*model.ProtocolInstance, error)
 	AddEventDefnToProtocol(ctx context.Context, input *model.NewEventDefn) (*model.EventDefn, error)
+	ScanProtocolInstance(ctx context.Context, input model.NewScan) (*model.ProtocolInstance, error)
 }
 type ProtocolResolver interface {
 	ScannableEvents(ctx context.Context, obj *model.Protocol) ([]*model.EventDefn, error)
@@ -531,6 +533,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateProtocolInstance(childComplexity, args["input"].(model.NewProtocolInstance)), true
 
+	case "Mutation.scanProtocolInstance":
+		if e.complexity.Mutation.ScanProtocolInstance == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_scanProtocolInstance_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ScanProtocolInstance(childComplexity, args["input"].(model.NewScan)), true
+
 	case "Protocol.abi":
 		if e.complexity.Protocol.Abi == nil {
 			break
@@ -761,6 +775,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewEventDefn,
 		ec.unmarshalInputNewProtocol,
 		ec.unmarshalInputNewProtocolInstance,
+		ec.unmarshalInputNewScan,
 	)
 	first := true
 
@@ -882,6 +897,12 @@ type Mutation {
   createProtocol(input: NewProtocol!): Protocol!
   createProtocolInstance(input: NewProtocolInstance!): ProtocolInstance!
   addEventDefnToProtocol(input: NewEventDefn): EventDefn!
+  scanProtocolInstance(input: NewScan!): ProtocolInstance
+}
+
+input NewScan {
+  protocol: String!
+  chain: String!
 }
 
 type EventDefn {
@@ -1041,6 +1062,21 @@ func (ec *executionContext) field_Mutation_createProtocol_args(ctx context.Conte
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNNewProtocol2githubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐNewProtocol(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_scanProtocolInstance_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewScan
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNNewScan2githubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐNewScan(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3271,6 +3307,72 @@ func (ec *executionContext) fieldContext_Mutation_addEventDefnToProtocol(ctx con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_addEventDefnToProtocol_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_scanProtocolInstance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_scanProtocolInstance(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ScanProtocolInstance(rctx, fc.Args["input"].(model.NewScan))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ProtocolInstance)
+	fc.Result = res
+	return ec.marshalOProtocolInstance2ᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐProtocolInstance(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_scanProtocolInstance(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ProtocolInstance_id(ctx, field)
+			case "protocol":
+				return ec.fieldContext_ProtocolInstance_protocol(ctx, field)
+			case "chain":
+				return ec.fieldContext_ProtocolInstance_chain(ctx, field)
+			case "contractAddress":
+				return ec.fieldContext_ProtocolInstance_contractAddress(ctx, field)
+			case "firstBlockToRead":
+				return ec.fieldContext_ProtocolInstance_firstBlockToRead(ctx, field)
+			case "lastBlockRead":
+				return ec.fieldContext_ProtocolInstance_lastBlockRead(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProtocolInstance", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_scanProtocolInstance_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -6754,6 +6856,37 @@ func (ec *executionContext) unmarshalInputNewProtocolInstance(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputNewScan(ctx context.Context, obj interface{}) (model.NewScan, error) {
+	var it model.NewScan
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "protocol":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("protocol"))
+			it.Protocol, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "chain":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chain"))
+			it.Chain, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -7336,6 +7469,12 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "scanProtocolInstance":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_scanProtocolInstance(ctx, field)
+			})
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8389,6 +8528,11 @@ func (ec *executionContext) unmarshalNNewProtocolInstance2githubᚗcomᚋtranslu
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNNewScan2githubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐNewScan(ctx context.Context, v interface{}) (model.NewScan, error) {
+	res, err := ec.unmarshalInputNewScan(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNProtocol2githubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐProtocol(ctx context.Context, sel ast.SelectionSet, v model.Protocol) graphql.Marshaler {
 	return ec._Protocol(ctx, sel, &v)
 }
@@ -8950,6 +9094,13 @@ func (ec *executionContext) marshalOProtocol2ᚖgithubᚗcomᚋtranslucentᚑlin
 		return graphql.Null
 	}
 	return ec._Protocol(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOProtocolInstance2ᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐProtocolInstance(ctx context.Context, sel ast.SelectionSet, v *model.ProtocolInstance) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ProtocolInstance(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
