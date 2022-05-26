@@ -1,0 +1,79 @@
+mutation(
+  $avalanche: NewChain!,
+  $polygon: NewChain!,
+  $ethereum: NewChain!,
+  $aave: NewProtocol!,
+  $cETH: NewProtocol!,
+  $cUSDC: NewProtocol!,
+  $cUSDT: NewProtocol!,
+  $cDAI: NewProtocol!,
+  $ethereumCETH: NewProtocolInstance!,
+  $ethereumCUSDC: NewProtocolInstance!,
+  $ethereumCUSDT: NewProtocolInstance!,
+  $ethereumCDAI: NewProtocolInstance!,
+  $avalancheAave: NewProtocolInstance!,
+  $polygonAave: NewProtocolInstance!,
+  $supplyAave: NewEventDefn!,
+  $borrowAave: NewEventDefn!,
+  $repayAave: NewEventDefn!,
+  $liquidationCallAave: NewEventDefn!,
+  $mintCETH: NewEventDefn!,
+  $borrowCETH: NewEventDefn!,
+  $repayCETH: NewEventDefn!,
+  $liquidateBorrowCETH: NewEventDefn!,
+  $mintCUSDC: NewEventDefn!,
+  $borrowCUSDC: NewEventDefn!,
+  $repayCUSDC: NewEventDefn!,
+  $liquidateBorrowCUSDC: NewEventDefn!,
+  $mintCUSDT: NewEventDefn!,
+  $borrowCUSDT: NewEventDefn!,
+  $repayCUSDT: NewEventDefn!,
+  $liquidateBorrowCUSDT: NewEventDefn!,
+  $mintCDAI: NewEventDefn!,
+  $borrowCDAI: NewEventDefn!,
+  $repayCDAI: NewEventDefn!,
+  $liquidateBorrowCDAI: NewEventDefn!,
+) {
+  createAvalanche: createChain(input: $avalanche) {id }
+  createPolygon: createChain(input: $polygon) {id }
+  createEthereum: createChain(input: $ethereum) {id }
+
+  createAave: createProtocol(input: $aave) {id}
+  createCETH: createProtocol(input: $cETH) {id}
+  createCUSDC: createProtocol(input: $cUSDC) {id}
+  createCUSDT: createProtocol(input: $cUSDT) {id}
+  createCDAI: createProtocol(input: $cDAI) {id}
+
+  createEthereumCETH: createProtocolInstance(input: $ethereumCETH) {id}
+  createEthereumUSDC: createProtocolInstance(input: $ethereumCUSDC) {id}
+  createEthereumCUSDT: createProtocolInstance(input: $ethereumCUSDT) {id}
+  createEthereumCDAI: createProtocolInstance(input: $ethereumCDAI) {id}
+  createAvalancheAave: createProtocolInstance(input: $avalancheAave) {id}
+  createPolygonAave: createProtocolInstance(input: $polygonAave) {id}
+
+  addSupplyToAave: addEventDefnToProtocol(input: $supplyAave) {id}
+  addBorrowToAave: addEventDefnToProtocol(input: $borrowAave) {id}
+  addRepayToAave: addEventDefnToProtocol(input: $repayAave) {id}
+  addLiquidationCallToAave: addEventDefnToProtocol(input: $liquidationCallAave) {id}
+
+  addMintToCETH: addEventDefnToProtocol(input: $mintCETH) {id}
+  addBorrowToCETH: addEventDefnToProtocol(input: $borrowCETH) {id}
+  addRepayToCETH: addEventDefnToProtocol(input: $repayCETH) {id}
+  addLiquidateBorrowToCETH: addEventDefnToProtocol(input: $liquidateBorrowCETH) {id}
+
+  addMintToCUSDC: addEventDefnToProtocol(input: $mintCUSDC) {id}
+  addBorrowToCUSDC: addEventDefnToProtocol(input: $borrowCUSDC) {id}
+  addRepayToCUSDC: addEventDefnToProtocol(input: $repayCUSDC) {id}
+  addLiquidateBorrowToCUSDC: addEventDefnToProtocol(input: $liquidateBorrowCUSDC) {id}
+
+  addMintToCUSDT: addEventDefnToProtocol(input: $mintCUSDT) {id}
+  addBorrowToCUSDT: addEventDefnToProtocol(input: $borrowCUSDT) {id}
+  addRepayToCUSDT: addEventDefnToProtocol(input: $repayCUSDT) {id}
+  addLiquidateBorrowToCUSDT: addEventDefnToProtocol(input: $liquidateBorrowCUSDT) {id}
+
+  addMintToCDAI: addEventDefnToProtocol(input: $mintCDAI) {id}
+  addBorrowToCDAI: addEventDefnToProtocol(input: $borrowCDAI) {id}
+  addRepayToCDAI: addEventDefnToProtocol(input: $repayCDAI) {id}
+  addLiquidateBorrowToCDAI: addEventDefnToProtocol(input: $liquidateBorrowCDAI) {id}
+
+}
