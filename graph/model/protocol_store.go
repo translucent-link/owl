@@ -10,9 +10,8 @@ type ProtocolStore struct {
 	db *sqlx.DB
 }
 
-func NewProtocolStore() (*ProtocolStore, error) {
-	db, err := DbConnect()
-	return &ProtocolStore{db: db}, err
+func NewProtocolStore(db *sqlx.DB) *ProtocolStore {
+	return &ProtocolStore{db: db}
 }
 
 func (s *ProtocolStore) FindById(id int) (*Protocol, error) {

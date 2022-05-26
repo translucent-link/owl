@@ -11,8 +11,11 @@ func init() {
 }
 
 func TestAllAccountEvents(t *testing.T) {
-	eventStore, _ := NewEventStore()
-	events, err := eventStore.AllByAccount(1)
+	db, _ := DbConnect()
+	defer db.Close()
+	stores := GenerateStores(db)
+
+	events, err := stores.Event.AllByAccount(1)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(events))

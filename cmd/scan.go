@@ -10,10 +10,11 @@ import (
 )
 
 func scan(c *cli.Context) error {
+	db, err := model.DbConnect()
+	defer db.Close()
+	stores := model.GenerateStores(db)
 
-	chainStore, protocolStore, protocolInstanceStore, err := model.Stores()
-
-	chains, err := chainStore.All()
+	chains, err := stores.Chain.All()
 	if err != nil {
 		return errors.Wrap(err, "Retrieving list of chains")
 	}
@@ -25,16 +26,16 @@ func scan(c *cli.Context) error {
 			return errors.Wrap(err, "Retrieving EVM client")
 		}
 
-		protocols, err := protocolStore.AllByChain(chain.ID)
+		protocols, err := stores.Protocol.AllByChain(chain.ID)
 		if err != nil {
 			return errors.Wrap(err, "Retrieving list of protocols")
 		}
 		for _, protocol := range protocols {
-			protocolInstance, err := protocolInstanceStore.FindByProtocolIdAndChainId(protocol.ID, chain.ID)
+			protocolInstance, err := stores.ProtocolInstance.FindByProtocolIdAndChainId(protocol.ID, chain.ID)
 			if err != nil {
 				return errors.Wrap(err, "Retrieving list of protocol instances")
 			}
-			scannableEvents, err := protocolStore.AllEventsByProtocol(protocol.ID)
+			scannableEvents, err := stores.Protocol.AllEventsByProtocol(protocol.ID)
 			if err != nil {
 				return errors.Wrap(err, "Retrieving list of scannable events")
 			}

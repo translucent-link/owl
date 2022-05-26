@@ -8,9 +8,8 @@ type ChainStore struct {
 	db *sqlx.DB
 }
 
-func NewChainStore() (*ChainStore, error) {
-	db, err := DbConnect()
-	return &ChainStore{db: db}, err
+func NewChainStore(db *sqlx.DB) *ChainStore {
+	return &ChainStore{db: db}
 }
 
 func (s *ChainStore) FindById(id int) (*Chain, error) {

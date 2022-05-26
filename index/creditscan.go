@@ -26,26 +26,13 @@ func grabUnpacker(protocol *model.Protocol) (Unpacker, error) {
 }
 
 func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.Protocol, protocolInstance *model.ProtocolInstance, scannableEvents []*model.EventDefn) error {
-
-	eventStore, err := model.NewEventStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return errors.Wrap(err, "Unable to create EventStore")
+		return errors.Wrap(err, "Unable to connect to DB and launch scan")
 	}
+	defer db.Close()
+	stores := model.GenerateStores(db)
 
-	accountStore, err := model.NewAccountStore()
-	if err != nil {
-		return errors.Wrap(err, "Unable to create AccountStore")
-	}
-
-	tokenStore, err := model.NewTokenStore()
-	if err != nil {
-		return errors.Wrap(err, "Unable to create TokenStore")
-	}
-
-	protocolInstanceStore, err := model.NewProtocolInstanceStore()
-	if err != nil {
-		return errors.Wrap(err, "Unable to create ProtocolInstanceStore")
-	}
 	unpacker, err := grabUnpacker(protocol)
 	contractAbi, err := abi.JSON(strings.NewReader(protocol.Abi))
 	if err != nil {
@@ -104,15 +91,15 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 						}
 
 						if event.Borrowable != nil {
-							borrower, err := accountStore.FindOrCreateByAddress(event.Borrowable.GetBorrower().Hex())
+							borrower, err := stores.Account.FindOrCreateByAddress(event.Borrowable.GetBorrower().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create borrower for Borrow event"))
 							}
-							borrowToken, err := tokenStore.FindOrCreateByAddress(event.Borrowable.GetBorrowToken().Hex())
+							borrowToken, err := stores.Token.FindOrCreateByAddress(event.Borrowable.GetBorrowToken().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Borrow event"))
 							}
-							_, err = eventStore.StoreBorrowEvent(
+							_, err = stores.Event.StoreBorrowEvent(
 								protocolInstance.ID,
 								eventDefn.ID,
 								vLog.TxHash.Hex(),
@@ -125,15 +112,15 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 								log.Println(errors.Wrap(err, "Unable store Borrow event"))
 							}
 						} else if event.Depositable != nil {
-							depositor, err := accountStore.FindOrCreateByAddress(event.Depositable.GetDepositor().Hex())
+							depositor, err := stores.Account.FindOrCreateByAddress(event.Depositable.GetDepositor().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create borrower for Deposit event"))
 							}
-							depositToken, err := tokenStore.FindOrCreateByAddress(event.Depositable.GetDepositToken().Hex())
+							depositToken, err := stores.Token.FindOrCreateByAddress(event.Depositable.GetDepositToken().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Deposit event"))
 							}
-							_, err = eventStore.StoreDepositEvent(
+							_, err = stores.Event.StoreDepositEvent(
 								protocolInstance.ID,
 								eventDefn.ID,
 								vLog.TxHash.Hex(),
@@ -146,15 +133,15 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 								log.Println(errors.Wrap(err, "Unable store Deposit event"))
 							}
 						} else if event.Repayable != nil {
-							borrower, err := accountStore.FindOrCreateByAddress(event.Repayable.GetBorrower().Hex())
+							borrower, err := stores.Account.FindOrCreateByAddress(event.Repayable.GetBorrower().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create borrower for Repay event"))
 							}
-							repayToken, err := tokenStore.FindOrCreateByAddress(event.Repayable.GetBorrowToken().Hex())
+							repayToken, err := stores.Token.FindOrCreateByAddress(event.Repayable.GetBorrowToken().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Repay event"))
 							}
-							_, err = eventStore.StoreRepayEvent(
+							_, err = stores.Event.StoreRepayEvent(
 								protocolInstance.ID,
 								eventDefn.ID,
 								vLog.TxHash.Hex(),
@@ -168,24 +155,24 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 							}
 						} else if event.Liquidatable != nil {
 
-							borrower, err := accountStore.FindOrCreateByAddress(event.Liquidatable.GetBorrower().Hex())
+							borrower, err := stores.Account.FindOrCreateByAddress(event.Liquidatable.GetBorrower().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create borrower for Liquidation event"))
 							}
-							liquidator, err := accountStore.FindOrCreateByAddress(event.Liquidatable.GetLiquidator().Hex())
+							liquidator, err := stores.Account.FindOrCreateByAddress(event.Liquidatable.GetLiquidator().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create borrower for Liquidation event"))
 							}
-							debtToken, err := tokenStore.FindOrCreateByAddress(event.Liquidatable.GetDebtToken().Hex())
+							debtToken, err := stores.Token.FindOrCreateByAddress(event.Liquidatable.GetDebtToken().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Repay event"))
 							}
-							collateralToken, err := tokenStore.FindOrCreateByAddress(event.Liquidatable.GetCollateralToken().Hex())
+							collateralToken, err := stores.Token.FindOrCreateByAddress(event.Liquidatable.GetCollateralToken().Hex())
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Repay event"))
 							}
 
-							_, err = eventStore.StoreLiquidationEvent(
+							_, err = stores.Event.StoreLiquidationEvent(
 								protocolInstance.ID,
 								eventDefn.ID,
 								vLog.TxHash.Hex(),
@@ -213,7 +200,7 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 				}
 			}
 		}
-		err = protocolInstanceStore.UpdateLastBlockRead(protocolInstance.ID, uint(endBlock.Int64()))
+		err = stores.ProtocolInstance.UpdateLastBlockRead(protocolInstance.ID, uint(endBlock.Int64()))
 		if err != nil {
 			return errors.Wrap(err, "Updating last block")
 		}

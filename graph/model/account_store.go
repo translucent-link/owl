@@ -8,9 +8,8 @@ type AccountStore struct {
 	db *sqlx.DB
 }
 
-func NewAccountStore() (*AccountStore, error) {
-	db, err := DbConnect()
-	return &AccountStore{db: db}, err
+func NewAccountStore(db *sqlx.DB) *AccountStore {
+	return &AccountStore{db: db}
 }
 
 func (s *AccountStore) FindById(id int) (*Account, error) {

@@ -12,9 +12,8 @@ type EventStore struct {
 	db *sqlx.DB
 }
 
-func NewEventStore() (*EventStore, error) {
-	db, err := DbConnect()
-	return &EventStore{db: db}, err
+func NewEventStore(db *sqlx.DB) *EventStore {
+	return &EventStore{db: db}
 }
 
 func (s *EventStore) AllByAccount(accountId int) ([]AllEvent, error) {

@@ -11,31 +11,26 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"github.com/translucent-link/owl/graph/generated"
 	"github.com/translucent-link/owl/graph/model"
 )
 
 func (r *accountResolver) Events(ctx context.Context, obj *model.Account) ([]model.AnyEvent, error) {
 	events := []model.AnyEvent{}
-	accountStore, err := model.NewAccountStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return events, err
+		return events, errors.Wrap(err, "Unable to connect to DB and retrieve events")
 	}
-	tokenStore, err := model.NewTokenStore()
-	if err != nil {
-		return events, err
-	}
-	eventStore, err := model.NewEventStore()
-	if err != nil {
-		return events, err
-	}
-	aEvents, err := eventStore.AllByAccount(obj.ID)
+	defer db.Close()
+	stores := model.GenerateStores(db)
+	aEvents, err := stores.Event.AllByAccount(obj.ID)
 	if err != nil {
 		return events, err
 	}
 	for _, aEvent := range aEvents {
 		var event model.AnyEvent
-		event, err = aEvent.AnyEvent(accountStore, tokenStore)
+		event, err = aEvent.AnyEvent(stores.Account, stores.Token)
 		if err != nil {
 			return events, err
 		}
@@ -45,110 +40,149 @@ func (r *accountResolver) Events(ctx context.Context, obj *model.Account) ([]mod
 }
 
 func (r *chainResolver) Protocols(ctx context.Context, obj *model.Chain) ([]*model.Protocol, error) {
-	store, err := model.NewProtocolStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return []*model.Protocol{}, err
+		return []*model.Protocol{}, errors.Wrap(err, "Unable to connect to DB and retrieve protocols")
 	}
-	return store.AllByChain(obj.ID)
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.Protocol.AllByChain(obj.ID)
 }
 
 func (r *chainResolver) Tokens(ctx context.Context, obj *model.Chain) ([]*model.Token, error) {
-	store, err := model.NewTokenStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return []*model.Token{}, err
+		return []*model.Token{}, errors.Wrap(err, "Unable to connect to DB and retrieve tokens")
 	}
-	return store.AllByChain(obj.ID)
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.Token.AllByChain(obj.ID)
 }
 
 func (r *mutationResolver) CreateChain(ctx context.Context, input model.NewChain) (*model.Chain, error) {
-	store, err := model.NewChainStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return &model.Chain{}, err
+		return &model.Chain{}, errors.Wrap(err, "Unable to connect to DB and create chain")
 	}
-	return store.CreateChain(input)
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.Chain.CreateChain(input)
 }
 
 func (r *mutationResolver) CreateProtocol(ctx context.Context, input model.NewProtocol) (*model.Protocol, error) {
-	store, err := model.NewProtocolStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return &model.Protocol{}, err
+		return &model.Protocol{}, errors.Wrap(err, "Unable to connect to DB and create protocol")
 	}
-	return store.CreateProtocol(input)
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.Protocol.CreateProtocol(input)
 }
 
 func (r *mutationResolver) CreateProtocolInstance(ctx context.Context, input model.NewProtocolInstance) (*model.ProtocolInstance, error) {
-	store, err := model.NewProtocolInstanceStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return &model.ProtocolInstance{}, err
+		return &model.ProtocolInstance{}, errors.Wrap(err, "Unable to connect to DB and create protocol instance")
 	}
-	return store.CreateProtocolInstance(input)
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.ProtocolInstance.CreateProtocolInstance(input)
 }
 
 func (r *mutationResolver) AddEventDefnToProtocol(ctx context.Context, input *model.NewEventDefn) (*model.EventDefn, error) {
-	protocolStore, err := model.NewProtocolStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return &model.EventDefn{}, err
+		return &model.EventDefn{}, errors.Wrap(err, "Unable to connect to DB and create event definition")
 	}
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
 	topicSignature := []byte(input.AbiSignature)
 	topicHash := crypto.Keccak256Hash(topicSignature)
-	return protocolStore.AddEventDefn(input.Protocol, input.TopicName, topicHash.Hex(), input.AbiSignature)
+	return stores.Protocol.AddEventDefn(input.Protocol, input.TopicName, topicHash.Hex(), input.AbiSignature)
 }
 
 func (r *protocolResolver) ScannableEvents(ctx context.Context, obj *model.Protocol) ([]*model.EventDefn, error) {
-	protocolStore, err := model.NewProtocolStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return []*model.EventDefn{}, err
+		return []*model.EventDefn{}, errors.Wrap(err, "Unable to connect to DB and retrieve scannable events")
 	}
-	return protocolStore.AllEventsByProtocol(obj.ID)
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.Protocol.AllEventsByProtocol(obj.ID)
 }
 
 func (r *protocolInstanceResolver) Protocol(ctx context.Context, obj *model.ProtocolInstance) (*model.Protocol, error) {
-	store, err := model.NewProtocolInstanceStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return &model.Protocol{}, err
+		return &model.Protocol{}, errors.Wrap(err, "Unable to connect to DB and retrieve scannable events")
 	}
-	return store.FindProtocolById(obj.ID)
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.ProtocolInstance.FindProtocolById(obj.ID)
 }
 
 func (r *protocolInstanceResolver) Chain(ctx context.Context, obj *model.ProtocolInstance) (*model.Chain, error) {
-	store, err := model.NewProtocolInstanceStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return &model.Chain{}, err
+		return &model.Chain{}, errors.Wrap(err, "Unable to connect to DB and retrieve scannable events")
 	}
-	return store.FindChainById(obj.ID)
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.ProtocolInstance.FindChainById(obj.ID)
 }
 
 func (r *queryResolver) Chains(ctx context.Context) ([]*model.Chain, error) {
-	store, err := model.NewChainStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return []*model.Chain{}, err
+		return []*model.Chain{}, errors.Wrap(err, "Unable to connect to DB and retrieve chains")
 	}
-	return store.All()
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.Chain.All()
 }
 
 func (r *queryResolver) Protocols(ctx context.Context) ([]*model.Protocol, error) {
-	store, err := model.NewProtocolStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return []*model.Protocol{}, err
+		return []*model.Protocol{}, errors.Wrap(err, "Unable to connect to DB and retrieve chains")
 	}
-	return store.All()
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.Protocol.All()
 }
 
 func (r *queryResolver) ProtocolInstances(ctx context.Context) ([]*model.ProtocolInstance, error) {
-	store, err := model.NewProtocolInstanceStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return []*model.ProtocolInstance{}, err
+		return []*model.ProtocolInstance{}, errors.Wrap(err, "Unable to connect to DB and retrieve protocol instances")
 	}
-	return store.All()
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	return stores.ProtocolInstance.All()
 }
 
 func (r *queryResolver) Accounts(ctx context.Context, address *string) ([]*model.Account, error) {
-	store, err := model.NewAccountStore()
+	db, err := model.DbConnect()
 	if err != nil {
-		return []*model.Account{}, err
+		return []*model.Account{}, errors.Wrap(err, "Unable to connect to DB and retrieve accounts")
 	}
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
 	if address != nil {
-		acc, err := store.FindByAddress(*address)
+		acc, err := stores.Account.FindByAddress(*address)
 		return []*model.Account{acc}, err
 	}
 	return []*model.Account{}, err

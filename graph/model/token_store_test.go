@@ -11,15 +11,23 @@ func init() {
 }
 
 func TestAllTokens(t *testing.T) {
-	tokenStore, _ := NewTokenStore()
-	tokens, err := tokenStore.All()
+	db, _ := DbConnect()
+	defer db.Close()
+	stores := GenerateStores(db)
+
+	tokens, err := stores.Token.All()
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(tokens))
 }
 
 func TestCreateToken(t *testing.T) {
-	tokenStore, _ := NewTokenStore()
-	token, err := tokenStore.CreateToken("0xB5DB0Eb39522427f292F4aeCA62B7886639BE8Db", "Polygon Matic", "MATIC")
+	db, _ := DbConnect()
+	defer db.Close()
+	stores := GenerateStores(db)
+
+	name := "Polygon Matic"
+	ticker := "MATIC"
+	token, err := stores.Token.CreateToken("0xB5DB0Eb39522427f292F4aeCA62B7886639BE8Db", &name, &ticker)
 	assert.Nil(t, err)
 	assert.NotEqual(t, 0, token.ID)
 	assert.Equal(t, "0xB5DB0Eb39522427f292F4aeCA62B7886639BE8Db", token.Address)
@@ -28,8 +36,11 @@ func TestCreateToken(t *testing.T) {
 }
 
 func TestFindTokenById(t *testing.T) {
-	tokenStore, _ := NewTokenStore()
-	token, err := tokenStore.FindById(1)
+	db, _ := DbConnect()
+	defer db.Close()
+	stores := GenerateStores(db)
+
+	token, err := stores.Token.FindById(1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, token.ID)
 	assert.Equal(t, "0xB5DB0Eb39522427f292F4aeCA62B7886639BE8Dc", token.Address)
@@ -38,8 +49,11 @@ func TestFindTokenById(t *testing.T) {
 }
 
 func TestFindTokenByName(t *testing.T) {
-	tokenStore, _ := NewTokenStore()
-	token, err := tokenStore.FindByName("Polygon")
+	db, _ := DbConnect()
+	defer db.Close()
+	stores := GenerateStores(db)
+
+	token, err := stores.Token.FindByName("Polygon")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, token.ID)
 	assert.Equal(t, "0xB5DB0Eb39522427f292F4aeCA62B7886639BE8Dc", token.Address)

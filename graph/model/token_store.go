@@ -8,9 +8,8 @@ type TokenStore struct {
 	db *sqlx.DB
 }
 
-func NewTokenStore() (*TokenStore, error) {
-	db, err := DbConnect()
-	return &TokenStore{db: db}, err
+func NewTokenStore(db *sqlx.DB) *TokenStore {
+	return &TokenStore{db: db}
 }
 
 func (s *TokenStore) FindById(id int) (*Token, error) {

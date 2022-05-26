@@ -13,17 +13,10 @@ type ProtocolInstanceStore struct {
 	chainStore    *ChainStore
 }
 
-func NewProtocolInstanceStore() (*ProtocolInstanceStore, error) {
-	db, err := DbConnect()
-	if err != nil {
-		return &ProtocolInstanceStore{}, err
-	}
-	ps, err := NewProtocolStore()
-	if err != nil {
-		return &ProtocolInstanceStore{}, err
-	}
-	cs, err := NewChainStore()
-	return &ProtocolInstanceStore{db: db, protocolStore: ps, chainStore: cs}, err
+func NewProtocolInstanceStore(db *sqlx.DB) *ProtocolInstanceStore {
+	ps := NewProtocolStore(db)
+	cs := NewChainStore(db)
+	return &ProtocolInstanceStore{db: db, protocolStore: ps, chainStore: cs}
 }
 
 func (s *ProtocolInstanceStore) FindById(id int) (*ProtocolInstance, error) {
@@ -75,7 +68,6 @@ func (s *ProtocolInstanceStore) CreateProtocolInstance(input NewProtocolInstance
 	if err != nil {
 		return &ProtocolInstance{}, err
 	}
-	fmt.Printf("Returning PI id: %d", insertedId)
 	return s.FindById(insertedId)
 }
 

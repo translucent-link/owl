@@ -1,8 +1,11 @@
 package model
 
 import (
+	"log"
 	"time"
 
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -14,15 +17,6 @@ func truncateTokens(db *sqlx.DB) {
 	db.MustExec("truncate table tokens cascade")
 }
 
-func truncateBorrows(db *sqlx.DB) {
-	db.MustExec("truncate table borrows")
-}
-func truncateRepays(db *sqlx.DB) {
-	db.MustExec("truncate table repays")
-}
-func truncateLiquidations(db *sqlx.DB) {
-	db.MustExec("truncate table liquidations")
-}
 func truncateChains(db *sqlx.DB) {
 	db.MustExec("truncate table chains cascade")
 }
@@ -77,10 +71,11 @@ func setupEvents(db *sqlx.DB) {
 }
 
 func setupDb() {
-	db, _ := DbConnect()
-	truncateBorrows(db)
-	truncateRepays(db)
-	truncateLiquidations(db)
+	db, err := DbConnect()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 	truncateAccounts(db)
 	truncateTokens(db)
 	truncateEvents(db)

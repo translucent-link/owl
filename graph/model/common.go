@@ -3,26 +3,46 @@ package model
 import (
 	"os"
 
+	"log"
+
 	"github.com/jmoiron/sqlx"
 )
 
-func Stores() (*ChainStore, *ProtocolStore, *ProtocolInstanceStore, error) {
-	protocolStore, err := NewProtocolStore()
-	if err != nil {
-		return &ChainStore{}, &ProtocolStore{}, &ProtocolInstanceStore{}, err
-	}
-	chainStore, err := NewChainStore()
-	if err != nil {
-		return &ChainStore{}, &ProtocolStore{}, &ProtocolInstanceStore{}, err
-	}
-	protocolInstanceStore, err := NewProtocolInstanceStore()
-	if err != nil {
-		return &ChainStore{}, &ProtocolStore{}, &ProtocolInstanceStore{}, err
+type Stores struct {
+	Protocol         *ProtocolStore
+	Chain            *ChainStore
+	ProtocolInstance *ProtocolInstanceStore
+	Account          *AccountStore
+	Event            *EventStore
+	Token            *TokenStore
+}
+
+func GenerateStores(db *sqlx.DB) Stores {
+
+	protocolStore := NewProtocolStore(db)
+	chainStore := NewChainStore(db)
+	protocolInstanceStore := NewProtocolInstanceStore(db)
+	accountStore := NewAccountStore(db)
+	eventStore := NewEventStore(db)
+	tokenStore := NewTokenStore(db)
+
+	stores := Stores{
+		Protocol:         protocolStore,
+		Chain:            chainStore,
+		ProtocolInstance: protocolInstanceStore,
+		Account:          accountStore,
+		Event:            eventStore,
+		Token:            tokenStore,
 	}
 
-	return chainStore, protocolStore, protocolInstanceStore, nil
+	return stores
 }
 
 func DbConnect() (*sqlx.DB, error) {
-	return sqlx.Connect("pgx", os.Getenv("DATABASE_URL"))
+	url := os.Getenv("DATABASE_URL")
+	if len(url) == 0 {
+		log.Println("DATABASE_URL is not set")
+	}
+	log.Printf("Connecting to %s", url)
+	return sqlx.Connect("pgx", url)
 }
