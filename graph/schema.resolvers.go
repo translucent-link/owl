@@ -9,6 +9,7 @@ import (
 	"log"
 
 	"github.com/pkg/errors"
+	"github.com/translucent-link/owl/metrics"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	_ "github.com/lib/pq"
@@ -59,6 +60,7 @@ func (r *chainResolver) Tokens(ctx context.Context, obj *model.Chain) ([]*model.
 	defer db.Close()
 	stores := model.GenerateStores(db)
 
+	metrics.ReqProcessed.Inc()
 	return stores.Token.AllByChain(obj.ID)
 }
 
@@ -70,6 +72,7 @@ func (r *mutationResolver) CreateChain(ctx context.Context, input model.NewChain
 	defer db.Close()
 	stores := model.GenerateStores(db)
 
+	metrics.ReqProcessed.Inc()
 	return stores.Chain.CreateChain(input)
 }
 
@@ -81,6 +84,7 @@ func (r *mutationResolver) CreateProtocol(ctx context.Context, input model.NewPr
 	defer db.Close()
 	stores := model.GenerateStores(db)
 
+	metrics.ReqProcessed.Inc()
 	return stores.Protocol.CreateProtocol(input)
 }
 
@@ -92,6 +96,7 @@ func (r *mutationResolver) CreateProtocolInstance(ctx context.Context, input mod
 	defer db.Close()
 	stores := model.GenerateStores(db)
 
+	metrics.ReqProcessed.Inc()
 	return stores.ProtocolInstance.CreateProtocolInstance(input)
 }
 
@@ -105,6 +110,8 @@ func (r *mutationResolver) AddEventDefnToProtocol(ctx context.Context, input *mo
 
 	topicSignature := []byte(input.AbiSignature)
 	topicHash := crypto.Keccak256Hash(topicSignature)
+
+	metrics.ReqProcessed.Inc()
 	return stores.Protocol.AddEventDefn(input.Protocol, input.TopicName, topicHash.Hex(), input.AbiSignature)
 }
 
@@ -146,6 +153,7 @@ func (r *mutationResolver) ScanProtocolInstance(ctx context.Context, input model
 	index.ScanChannel <- scanRequest
 	log.Println("Scan Requested")
 
+	metrics.ReqProcessed.Inc()
 	return protocolInstance, nil
 }
 
@@ -176,6 +184,8 @@ func (r *mutationResolver) UpdateTokenList(ctx context.Context, input []*model.T
 			}
 		}
 	}
+
+	metrics.ReqProcessed.Inc()
 	return tokens, nil
 }
 
@@ -220,6 +230,7 @@ func (r *queryResolver) Chains(ctx context.Context) ([]*model.Chain, error) {
 	defer db.Close()
 	stores := model.GenerateStores(db)
 
+	metrics.ReqProcessed.Inc()
 	return stores.Chain.All()
 }
 
@@ -231,6 +242,7 @@ func (r *queryResolver) Protocols(ctx context.Context) ([]*model.Protocol, error
 	defer db.Close()
 	stores := model.GenerateStores(db)
 
+	metrics.ReqProcessed.Inc()
 	return stores.Protocol.All()
 }
 
@@ -242,6 +254,7 @@ func (r *queryResolver) ProtocolInstances(ctx context.Context) ([]*model.Protoco
 	defer db.Close()
 	stores := model.GenerateStores(db)
 
+	metrics.ReqProcessed.Inc()
 	return stores.ProtocolInstance.All()
 }
 
@@ -255,8 +268,11 @@ func (r *queryResolver) Accounts(ctx context.Context, address *string) ([]*model
 
 	if address != nil {
 		acc, err := stores.Account.FindByAddress(*address)
+		metrics.ReqProcessed.Inc()
 		return []*model.Account{acc}, err
 	}
+
+	metrics.ReqProcessed.Inc()
 	return []*model.Account{}, err
 }
 
