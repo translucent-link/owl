@@ -120,7 +120,7 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create borrower for Borrow event"))
 							}
-							borrowToken, err := stores.Token.FindOrCreateByAddress(event.Borrowable.GetBorrowToken().Hex())
+							borrowToken, err := stores.Token.FindOrCreateByAddress(event.Borrowable.GetBorrowToken().Hex(), chain.ID)
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Borrow event"))
 							}
@@ -141,7 +141,7 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create borrower for Deposit event"))
 							}
-							depositToken, err := stores.Token.FindOrCreateByAddress(event.Depositable.GetDepositToken().Hex())
+							depositToken, err := stores.Token.FindOrCreateByAddress(event.Depositable.GetDepositToken().Hex(), chain.ID)
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Deposit event"))
 							}
@@ -162,7 +162,7 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create borrower for Repay event"))
 							}
-							repayToken, err := stores.Token.FindOrCreateByAddress(event.Repayable.GetBorrowToken().Hex())
+							repayToken, err := stores.Token.FindOrCreateByAddress(event.Repayable.GetBorrowToken().Hex(), chain.ID)
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Repay event"))
 							}
@@ -188,11 +188,11 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create borrower for Liquidation event"))
 							}
-							debtToken, err := stores.Token.FindOrCreateByAddress(event.Liquidatable.GetDebtToken().Hex())
+							debtToken, err := stores.Token.FindOrCreateByAddress(event.Liquidatable.GetDebtToken().Hex(), chain.ID)
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Repay event"))
 							}
-							collateralToken, err := stores.Token.FindOrCreateByAddress(event.Liquidatable.GetCollateralToken().Hex())
+							collateralToken, err := stores.Token.FindOrCreateByAddress(event.Liquidatable.GetCollateralToken().Hex(), chain.ID)
 							if err != nil {
 								log.Println(errors.Wrap(err, "Unable find/create token for Repay event"))
 							}

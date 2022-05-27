@@ -113,6 +113,7 @@ type ComplexityRoot struct {
 		CreateProtocol         func(childComplexity int, input model.NewProtocol) int
 		CreateProtocolInstance func(childComplexity int, input model.NewProtocolInstance) int
 		ScanProtocolInstance   func(childComplexity int, input model.NewScan) int
+		UpdateTokenList        func(childComplexity int, input []*model.TokenInfo) int
 	}
 
 	Protocol struct {
@@ -173,6 +174,7 @@ type MutationResolver interface {
 	CreateProtocolInstance(ctx context.Context, input model.NewProtocolInstance) (*model.ProtocolInstance, error)
 	AddEventDefnToProtocol(ctx context.Context, input *model.NewEventDefn) (*model.EventDefn, error)
 	ScanProtocolInstance(ctx context.Context, input model.NewScan) (*model.ProtocolInstance, error)
+	UpdateTokenList(ctx context.Context, input []*model.TokenInfo) ([]*model.Token, error)
 }
 type ProtocolResolver interface {
 	ScannableEvents(ctx context.Context, obj *model.Protocol) ([]*model.EventDefn, error)
@@ -545,6 +547,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ScanProtocolInstance(childComplexity, args["input"].(model.NewScan)), true
 
+	case "Mutation.updateTokenList":
+		if e.complexity.Mutation.UpdateTokenList == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateTokenList_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateTokenList(childComplexity, args["input"].([]*model.TokenInfo)), true
+
 	case "Protocol.abi":
 		if e.complexity.Protocol.Abi == nil {
 			break
@@ -776,6 +790,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewProtocol,
 		ec.unmarshalInputNewProtocolInstance,
 		ec.unmarshalInputNewScan,
+		ec.unmarshalInputTokenInfo,
 	)
 	first := true
 
@@ -898,6 +913,15 @@ type Mutation {
   createProtocolInstance(input: NewProtocolInstance!): ProtocolInstance!
   addEventDefnToProtocol(input: NewEventDefn): EventDefn!
   scanProtocolInstance(input: NewScan!): ProtocolInstance
+  updateTokenList(input: [TokenInfo]!): [Token]!
+}
+
+input TokenInfo {
+  address: String!
+  name: String!
+  ticker: String!
+  chain: String!
+  decimals: Int!
 }
 
 input NewScan {
@@ -1077,6 +1101,21 @@ func (ec *executionContext) field_Mutation_scanProtocolInstance_args(ctx context
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNNewScan2githubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐNewScan(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateTokenList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []*model.TokenInfo
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNTokenInfo2ᚕᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐTokenInfo(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3373,6 +3412,73 @@ func (ec *executionContext) fieldContext_Mutation_scanProtocolInstance(ctx conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_scanProtocolInstance_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateTokenList(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateTokenList(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateTokenList(rctx, fc.Args["input"].([]*model.TokenInfo))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Token)
+	fc.Result = res
+	return ec.marshalNToken2ᚕᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐToken(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateTokenList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Token_id(ctx, field)
+			case "address":
+				return ec.fieldContext_Token_address(ctx, field)
+			case "name":
+				return ec.fieldContext_Token_name(ctx, field)
+			case "ticker":
+				return ec.fieldContext_Token_ticker(ctx, field)
+			case "decimals":
+				return ec.fieldContext_Token_decimals(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Token", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateTokenList_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -6887,6 +6993,61 @@ func (ec *executionContext) unmarshalInputNewScan(ctx context.Context, obj inter
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputTokenInfo(ctx context.Context, obj interface{}) (model.TokenInfo, error) {
+	var it model.TokenInfo
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "address":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+			it.Address, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "ticker":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticker"))
+			it.Ticker, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "chain":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chain"))
+			it.Chain, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "decimals":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("decimals"))
+			it.Decimals, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -7475,6 +7636,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 				return ec._Mutation_scanProtocolInstance(ctx, field)
 			})
 
+		case "updateTokenList":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateTokenList(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8765,6 +8935,23 @@ func (ec *executionContext) marshalNToken2ᚖgithubᚗcomᚋtranslucentᚑlink�
 	return ec._Token(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNTokenInfo2ᚕᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐTokenInfo(ctx context.Context, v interface{}) ([]*model.TokenInfo, error) {
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.TokenInfo, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOTokenInfo2ᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐTokenInfo(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
 	return ec.___Directive(ctx, sel, &v)
 }
@@ -9124,6 +9311,14 @@ func (ec *executionContext) marshalOToken2ᚖgithubᚗcomᚋtranslucentᚑlink�
 		return graphql.Null
 	}
 	return ec._Token(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOTokenInfo2ᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐTokenInfo(ctx context.Context, v interface{}) (*model.TokenInfo, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputTokenInfo(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

@@ -27,7 +27,7 @@ func TestCreateToken(t *testing.T) {
 
 	name := "Polygon Matic"
 	ticker := "MATIC"
-	token, err := stores.Token.CreateToken("0xB5DB0Eb39522427f292F4aeCA62B7886639BE8Db", &name, &ticker)
+	token, err := stores.Token.CreateToken("0xB5DB0Eb39522427f292F4aeCA62B7886639BE8Db", &name, &ticker, 1)
 	assert.Nil(t, err)
 	assert.NotEqual(t, 0, token.ID)
 	assert.Equal(t, "0xB5DB0Eb39522427f292F4aeCA62B7886639BE8Db", token.Address)

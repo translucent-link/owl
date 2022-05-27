@@ -151,6 +151,14 @@ type Token struct {
 	Decimals int     `json:"decimals"`
 }
 
+type TokenInfo struct {
+	Address  string `json:"address"`
+	Name     string `json:"name"`
+	Ticker   string `json:"ticker"`
+	Chain    string `json:"chain"`
+	Decimals int    `json:"decimals"`
+}
+
 type EventType string
 
 const (

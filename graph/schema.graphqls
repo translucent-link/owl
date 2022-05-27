@@ -60,6 +60,15 @@ type Mutation {
   createProtocolInstance(input: NewProtocolInstance!): ProtocolInstance!
   addEventDefnToProtocol(input: NewEventDefn): EventDefn!
   scanProtocolInstance(input: NewScan!): ProtocolInstance
+  updateTokenList(input: [TokenInfo]!): [Token]!
+}
+
+input TokenInfo {
+  address: String!
+  name: String!
+  ticker: String!
+  chain: String!
+  decimals: Int!
 }
 
 input NewScan {

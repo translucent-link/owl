@@ -149,6 +149,36 @@ func (r *mutationResolver) ScanProtocolInstance(ctx context.Context, input model
 	return protocolInstance, nil
 }
 
+func (r *mutationResolver) UpdateTokenList(ctx context.Context, input []*model.TokenInfo) ([]*model.Token, error) {
+	tokens := []*model.Token{}
+	db, err := model.DbConnect()
+	if err != nil {
+		return tokens, errors.Wrap(err, "Unable to connect to DB and create event definition")
+	}
+	defer db.Close()
+	stores := model.GenerateStores(db)
+
+	for _, tokenInfo := range input {
+		chain, err := stores.Chain.FindByName(tokenInfo.Chain)
+		if err != nil {
+			return tokens, errors.Wrapf(err, "Unable to find chain to update token %s", chain.Name)
+		} else {
+			token, err := stores.Token.FindOrCreateByAddress(tokenInfo.Address, chain.ID)
+			if err != nil {
+				return tokens, errors.Wrapf(err, "Unable to create new token %s against %s", token.Address, chain.Name)
+			} else {
+				updatedToken, err := stores.Token.UpdateToken(token.ID, tokenInfo.Address, tokenInfo.Name, tokenInfo.Ticker, tokenInfo.Decimals)
+				if err != nil {
+					return tokens, errors.Wrapf(err, "Unable to update token %s", token.Address)
+				} else {
+					tokens = append(tokens, updatedToken)
+				}
+			}
+		}
+	}
+	return tokens, nil
+}
+
 func (r *protocolResolver) ScannableEvents(ctx context.Context, obj *model.Protocol) ([]*model.EventDefn, error) {
 	db, err := model.DbConnect()
 	if err != nil {
@@ -264,10 +294,3 @@ type mutationResolver struct{ *Resolver }
 type protocolResolver struct{ *Resolver }
 type protocolInstanceResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
