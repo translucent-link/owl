@@ -31,9 +31,11 @@ func init() {
 	ScanChannel = make(chan ScanRequest)
 	log.Println("Initialised  Scan channel")
 	go func() {
-		req := <-ScanChannel
-		log.Println("Received Scan Request")
-		ScanHistory(req.Client, req.Chain, req.Protocol, req.ProtocolInstance, req.ScannableEvents)
+		for req := range ScanChannel {
+			log.Println("Received Scan Request")
+			ScanHistory(req.Client, req.Chain, req.Protocol, req.ProtocolInstance, req.ScannableEvents)
+			log.Println("Scan complete")
+		}
 	}()
 }
 
@@ -79,6 +81,13 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 
 		log.Printf("Scanning from %d to %s", currentBlock, endBlock.String())
 
+		startTime, endTime, err := GetBlockTimestamps(client, currentBlock, endBlock)
+		// log.Printf("%d @ %s", currentBlock, startTime)
+		// log.Printf("%d @ %s", endBlock, endTime)
+		if err != nil {
+			return errors.Wrap(err, "Unable to get timestamps")
+		}
+
 		topics := []common.Hash{}
 		for _, event := range scannableEvents {
 			topics = append(topics, common.HexToHash(event.TopicHashHex))
@@ -104,11 +113,7 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 							log.Println(errors.Wrap(err, "Unable to unpack event"))
 						}
 
-						// occuredAt =
-						occuredAt, err := GetBlockTimestamp(client, big.NewInt(int64(vLog.BlockNumber)))
-						if err != nil {
-							log.Println(err)
-						}
+						occuredAt := GetEstimatedTimestamp(startTime, endTime, currentBlock, endBlock, big.NewInt(int64(vLog.BlockNumber)))
 
 						if event.Borrowable != nil {
 							borrower, err := stores.Account.FindOrCreateByAddress(event.Borrowable.GetBorrower().Hex())

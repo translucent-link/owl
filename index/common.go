@@ -92,6 +92,37 @@ func GetBlockTimestamp(client *ethclient.Client, blockNumber *big.Int) (time.Tim
 	return time.Unix(int64(header.Time), 0), nil
 }
 
+func GetBlockTimestamps(client *ethclient.Client, startBlock *big.Int, endBlock *big.Int) (time.Time, time.Time, error) {
+	startHeader, err := GetBlockHeader(client, startBlock)
+	if err != nil {
+		return time.Time{}, time.Time{}, errors.Wrapf(err, "Unable to deteremine timestamp for block %d", startBlock.Int64())
+	}
+	endHeader, err := GetBlockHeader(client, endBlock)
+	if err != nil {
+		return time.Time{}, time.Time{}, errors.Wrapf(err, "Unable to deteremine timestamp for block %d", endBlock.Int64())
+	}
+	return time.Unix(int64(startHeader.Time), 0), time.Unix(int64(endHeader.Time), 0), nil
+}
+
+func GetEstimatedTimestamp(startTime time.Time, endTime time.Time, startBlock *big.Int, endBlock *big.Int, currentBlock *big.Int) time.Time {
+	// DebugPrint("s", startBlock.String())
+	// DebugPrint("c", currentBlock.String())
+	// DebugPrint("e", endBlock.String())
+	blocksFromStart := currentBlock.Int64() - startBlock.Int64()
+	blockSpan := endBlock.Int64() - startBlock.Int64()
+	percentile := float64(blocksFromStart) / float64(blockSpan)
+	// fmt.Printf("Percentile: %f\n", percentile*100)
+	totalTimespan := endTime.Sub(startTime).Nanoseconds()
+	// fmt.Printf("TotalTimespan: %d\n", totalTimespan)
+
+	timespan := float64(totalTimespan) * percentile
+	// fmt.Printf("timespan: %f\n", timespan)
+	estimatedTimestamp := startTime.Add(time.Duration(int64(timespan)))
+	// fmt.Printf("estimate: %s\n", estimatedTimestamp.String())
+
+	return estimatedTimestamp
+}
+
 func indexOf(values []string, tgt string) int {
 	for i, v := range values {
 		if v == tgt {
