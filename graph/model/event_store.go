@@ -20,7 +20,7 @@ func (s *EventStore) AllByAccount(accountId int) ([]AllEvent, error) {
 	events := []AllEvent{}
 	sql := `SELECT e.*
 	FROM events e
-	WHERE e.borrowerAccountId = $1 OR e.repayerAccountId = $1
+	WHERE e.borrowerAccountId = $1 OR e.repayerAccountId = $1 OR e.depositorAccountId = $1 OR e.liquidatorAccountId = $1
 	ORDER BY blocknumber ASC;`
 	err := s.db.Select(&events, sql, accountId)
 	return events, err
@@ -97,7 +97,17 @@ func (e AllEvent) AnyEvent(accountStore *AccountStore, tokenStore *TokenStore) (
 	if tokenStore == nil {
 		log.Panic("TokenStore is nil")
 	}
-	if e.Type == EventTypeBorrow {
+	if e.Type == EventTypeDeposit {
+		depositor, err := accountStore.FindById(*e.DepositorAccountId)
+		if err != nil {
+			return DepositEvent{}, err
+		}
+		token, err := tokenStore.FindById(*e.DepositTokenId)
+		if err != nil {
+			return DepositEvent{}, err
+		}
+		return DepositEvent{e.ID, e.Type, e.Txhash, e.Blocknumber, e.OccuredAt, depositor, *e.AmountDeposited, token}, nil
+	} else if e.Type == EventTypeBorrow {
 		borrower, err := accountStore.FindById(*e.BorrowerAccountId)
 		if err != nil {
 			return BorrowEvent{}, err
