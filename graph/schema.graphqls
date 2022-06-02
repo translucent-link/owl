@@ -103,6 +103,7 @@ interface Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 }
 
@@ -111,6 +112,7 @@ type DepositEvent implements Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 
   depositor: Account!
@@ -123,6 +125,7 @@ type BorrowEvent implements Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 
   borrower: Account!
@@ -135,6 +138,7 @@ type RepayEvent implements Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 
   borrower: Account!
@@ -147,6 +151,7 @@ type LiquidationEvent implements Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 
   borrower: Account!

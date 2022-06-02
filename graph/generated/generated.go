@@ -60,6 +60,7 @@ type ComplexityRoot struct {
 		Blocknumber    func(childComplexity int) int
 		Borrower       func(childComplexity int) int
 		ID             func(childComplexity int) int
+		Index          func(childComplexity int) int
 		OccuredAt      func(childComplexity int) int
 		Token          func(childComplexity int) int
 		Txhash         func(childComplexity int) int
@@ -80,6 +81,7 @@ type ComplexityRoot struct {
 		Blocknumber     func(childComplexity int) int
 		Depositor       func(childComplexity int) int
 		ID              func(childComplexity int) int
+		Index           func(childComplexity int) int
 		OccuredAt       func(childComplexity int) int
 		Token           func(childComplexity int) int
 		Txhash          func(childComplexity int) int
@@ -101,6 +103,7 @@ type ComplexityRoot struct {
 		CollateralToken func(childComplexity int) int
 		DebtToken       func(childComplexity int) int
 		ID              func(childComplexity int) int
+		Index           func(childComplexity int) int
 		Liquidator      func(childComplexity int) int
 		OccuredAt       func(childComplexity int) int
 		Txhash          func(childComplexity int) int
@@ -146,6 +149,7 @@ type ComplexityRoot struct {
 		Blocknumber   func(childComplexity int) int
 		Borrower      func(childComplexity int) int
 		ID            func(childComplexity int) int
+		Index         func(childComplexity int) int
 		OccuredAt     func(childComplexity int) int
 		Token         func(childComplexity int) int
 		Txhash        func(childComplexity int) int
@@ -256,6 +260,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BorrowEvent.ID(childComplexity), true
 
+	case "BorrowEvent.index":
+		if e.complexity.BorrowEvent.Index == nil {
+			break
+		}
+
+		return e.complexity.BorrowEvent.Index(childComplexity), true
+
 	case "BorrowEvent.occuredAt":
 		if e.complexity.BorrowEvent.OccuredAt == nil {
 			break
@@ -353,6 +364,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.DepositEvent.ID(childComplexity), true
+
+	case "DepositEvent.index":
+		if e.complexity.DepositEvent.Index == nil {
+			break
+		}
+
+		return e.complexity.DepositEvent.Index(childComplexity), true
 
 	case "DepositEvent.occuredAt":
 		if e.complexity.DepositEvent.OccuredAt == nil {
@@ -458,6 +476,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.LiquidationEvent.ID(childComplexity), true
+
+	case "LiquidationEvent.index":
+		if e.complexity.LiquidationEvent.Index == nil {
+			break
+		}
+
+		return e.complexity.LiquidationEvent.Index(childComplexity), true
 
 	case "LiquidationEvent.liquidator":
 		if e.complexity.LiquidationEvent.Liquidator == nil {
@@ -714,6 +739,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.RepayEvent.ID(childComplexity), true
 
+	case "RepayEvent.index":
+		if e.complexity.RepayEvent.Index == nil {
+			break
+		}
+
+		return e.complexity.RepayEvent.Index(childComplexity), true
+
 	case "RepayEvent.occuredAt":
 		if e.complexity.RepayEvent.OccuredAt == nil {
 			break
@@ -956,6 +988,7 @@ interface Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 }
 
@@ -964,6 +997,7 @@ type DepositEvent implements Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 
   depositor: Account!
@@ -976,6 +1010,7 @@ type BorrowEvent implements Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 
   borrower: Account!
@@ -988,6 +1023,7 @@ type RepayEvent implements Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 
   borrower: Account!
@@ -1000,6 +1036,7 @@ type LiquidationEvent implements Event {
   type: EventType!
   txhash: String!
   blocknumber: Int!
+  index: Int!
   occuredAt: Time!
 
   borrower: Account!
@@ -1518,6 +1555,50 @@ func (ec *executionContext) _BorrowEvent_blocknumber(ctx context.Context, field 
 }
 
 func (ec *executionContext) fieldContext_BorrowEvent_blocknumber(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BorrowEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BorrowEvent_index(ctx context.Context, field graphql.CollectedField, obj *model.BorrowEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BorrowEvent_index(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BorrowEvent_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "BorrowEvent",
 		Field:      field,
@@ -2188,6 +2269,50 @@ func (ec *executionContext) fieldContext_DepositEvent_blocknumber(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _DepositEvent_index(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_DepositEvent_index(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_DepositEvent_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DepositEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _DepositEvent_occuredAt(ctx context.Context, field graphql.CollectedField, obj *model.DepositEvent) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_DepositEvent_occuredAt(ctx, field)
 	if err != nil {
@@ -2724,6 +2849,50 @@ func (ec *executionContext) _LiquidationEvent_blocknumber(ctx context.Context, f
 }
 
 func (ec *executionContext) fieldContext_LiquidationEvent_blocknumber(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LiquidationEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LiquidationEvent_index(ctx context.Context, field graphql.CollectedField, obj *model.LiquidationEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_LiquidationEvent_index(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_LiquidationEvent_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "LiquidationEvent",
 		Field:      field,
@@ -4611,6 +4780,50 @@ func (ec *executionContext) _RepayEvent_blocknumber(ctx context.Context, field g
 }
 
 func (ec *executionContext) fieldContext_RepayEvent_blocknumber(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RepayEvent",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RepayEvent_index(ctx context.Context, field graphql.CollectedField, obj *model.RepayEvent) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_RepayEvent_index(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_RepayEvent_index(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "RepayEvent",
 		Field:      field,
@@ -7223,6 +7436,13 @@ func (ec *executionContext) _BorrowEvent(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "index":
+
+			out.Values[i] = ec._BorrowEvent_index(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "occuredAt":
 
 			out.Values[i] = ec._BorrowEvent_occuredAt(ctx, field, obj)
@@ -7389,6 +7609,13 @@ func (ec *executionContext) _DepositEvent(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "index":
+
+			out.Values[i] = ec._DepositEvent_index(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "occuredAt":
 
 			out.Values[i] = ec._DepositEvent_occuredAt(ctx, field, obj)
@@ -7511,6 +7738,13 @@ func (ec *executionContext) _LiquidationEvent(ctx context.Context, sel ast.Selec
 		case "blocknumber":
 
 			out.Values[i] = ec._LiquidationEvent_blocknumber(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "index":
+
+			out.Values[i] = ec._LiquidationEvent_index(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -8021,6 +8255,13 @@ func (ec *executionContext) _RepayEvent(ctx context.Context, sel ast.SelectionSe
 		case "blocknumber":
 
 			out.Values[i] = ec._RepayEvent_blocknumber(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "index":
+
+			out.Values[i] = ec._RepayEvent_index(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++

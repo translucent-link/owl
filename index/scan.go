@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
 	"github.com/translucent-link/owl/graph/model"
@@ -129,12 +128,13 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 								eventDefn.ID,
 								vLog.TxHash.Hex(),
 								int64(vLog.BlockNumber),
+								int(vLog.Index),
 								occuredAt,
 								borrower.ID,
 								event.Borrowable.GetBorrowAmount(),
 								borrowToken.ID)
-							if err != nil {
-								log.Println(errors.Wrap(err, "Unable store Borrow event"))
+							if err != nil && !isDuplicateError(err) {
+								log.Println(errors.Wrapf(err, "Unable store Borrow event %s on PI:%d identified by %s", vLog.TxHash.Hex(), protocolInstance.ID, eventDefn.TopicHashHex))
 							}
 						} else if event.Depositable != nil {
 							depositor, err := stores.Account.FindOrCreateByAddress(event.Depositable.GetDepositor().Hex())
@@ -150,17 +150,18 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 								eventDefn.ID,
 								vLog.TxHash.Hex(),
 								int64(vLog.BlockNumber),
+								int(vLog.Index),
 								occuredAt,
 								depositor.ID,
 								event.Depositable.GetDepositAmount(),
 								depositToken.ID)
-							if err != nil {
-								log.Println(errors.Wrap(err, "Unable store Deposit event"))
+							if err != nil && !isDuplicateError(err) {
+								log.Println(errors.Wrapf(err, "Unable store Deposit event %s on PI:%d identified by %s", vLog.TxHash.Hex(), protocolInstance.ID, eventDefn.TopicHashHex))
 							}
 						} else if event.Repayable != nil {
 							borrower, err := stores.Account.FindOrCreateByAddress(event.Repayable.GetBorrower().Hex())
 							if err != nil {
-								log.Println(errors.Wrap(err, "Unable find/create borrower for Repay event"))
+								log.Println(errors.Wrap(err, "Unable find/create borrower for Repay event "))
 							}
 							repayToken, err := stores.Token.FindOrCreateByAddress(event.Repayable.GetBorrowToken().Hex(), chain.ID)
 							if err != nil {
@@ -171,12 +172,13 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 								eventDefn.ID,
 								vLog.TxHash.Hex(),
 								int64(vLog.BlockNumber),
+								int(vLog.Index),
 								occuredAt,
 								borrower.ID,
 								event.Repayable.GetRepayAmount(),
 								repayToken.ID)
-							if err != nil {
-								log.Println(errors.Wrap(err, "Unable store Borrow event"))
+							if err != nil && !isDuplicateError(err) {
+								log.Println(errors.Wrapf(err, "Unable store Repay event %s on PI:%d identified by %s", vLog.TxHash.Hex(), protocolInstance.ID, eventDefn.TopicHashHex))
 							}
 						} else if event.Liquidatable != nil {
 
@@ -202,6 +204,7 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 								eventDefn.ID,
 								vLog.TxHash.Hex(),
 								int64(vLog.BlockNumber),
+								int(vLog.Index),
 								occuredAt,
 								borrower.ID,
 								liquidator.ID,
@@ -209,10 +212,12 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 								event.Liquidatable.GetSeizeAmount(),
 								debtToken.ID,
 								collateralToken.ID)
+							if err != nil && !isDuplicateError(err) {
+								log.Println(errors.Wrapf(err, "Unable store Liquidation event %s on PI:%d identified by %s", vLog.TxHash.Hex(), protocolInstance.ID, eventDefn.TopicHashHex))
+							}
+
 						}
 
-						// log.Println(vLog.Topics[0].Hex())
-						// log.Println(event)
 						break
 					}
 				}
@@ -237,28 +242,6 @@ func ScanHistory(client *ethclient.Client, chain *model.Chain, protocol *model.P
 		log.Println(t)
 	}
 	return nil
-}
-
-func ListenToEvents(client *ethclient.Client, address string) {
-	contractAddress := common.HexToAddress(address)
-	query := ethereum.FilterQuery{
-		Addresses: []common.Address{contractAddress},
-	}
-
-	logs := make(chan types.Log)
-	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for {
-		select {
-		case err := <-sub.Err():
-			log.Fatal(err)
-		case vLog := <-logs:
-			handleLogEvent(vLog)
-		}
-	}
 }
 
 func FindFirstBlock(client *ethclient.Client, days int) (int64, error) {

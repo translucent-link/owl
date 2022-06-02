@@ -39,7 +39,6 @@ func main() {
 	app := &cli.App{
 		Commands: []*cli.Command{
 			cmd.BlkCommand,
-			cmd.ListenCommand,
 			cmd.ScanCommand,
 			cmd.ServerCommand,
 			cmd.AbiCommand,

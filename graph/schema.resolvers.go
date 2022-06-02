@@ -9,13 +9,13 @@ import (
 	"log"
 
 	"github.com/pkg/errors"
-	"github.com/translucent-link/owl/metrics"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	_ "github.com/lib/pq"
 	"github.com/translucent-link/owl/graph/generated"
 	"github.com/translucent-link/owl/graph/model"
 	"github.com/translucent-link/owl/index"
+	"github.com/translucent-link/owl/metrics"
 )
 
 func (r *accountResolver) Events(ctx context.Context, obj *model.Account) ([]model.AnyEvent, error) {

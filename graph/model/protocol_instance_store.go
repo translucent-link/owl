@@ -26,7 +26,6 @@ func (s *ProtocolInstanceStore) FindById(id int) (*ProtocolInstance, error) {
 }
 
 func (s *ProtocolInstanceStore) FindByProtocolIdAndChainId(protocolId int, chainId int) (*ProtocolInstance, error) {
-	fmt.Printf("p %d c %d", protocolId, chainId)
 	var protocolInstance ProtocolInstance
 	err := s.db.Get(&protocolInstance, "select id, contractAddress, firstBlockToRead, lastBlockRead from protocol_instances where protocolId=$1 and chainId=$2", protocolId, chainId)
 	return &protocolInstance, err

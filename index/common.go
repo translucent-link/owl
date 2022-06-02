@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -130,4 +131,8 @@ func indexOf(values []string, tgt string) int {
 		}
 	}
 	return -1
+}
+
+func isDuplicateError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "duplicate key value")
 }

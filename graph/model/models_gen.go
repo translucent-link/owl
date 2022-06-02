@@ -28,6 +28,7 @@ type BorrowEvent struct {
 	Type           EventType `json:"type"`
 	Txhash         string    `json:"txhash"`
 	Blocknumber    int       `json:"blocknumber"`
+	Index          int       `json:"index"`
 	OccuredAt      time.Time `json:"occuredAt"`
 	Borrower       *Account  `json:"borrower"`
 	AmountBorrowed int       `json:"amountBorrowed"`
@@ -51,6 +52,7 @@ type DepositEvent struct {
 	Type            EventType `json:"type"`
 	Txhash          string    `json:"txhash"`
 	Blocknumber     int       `json:"blocknumber"`
+	Index           int       `json:"index"`
 	OccuredAt       time.Time `json:"occuredAt"`
 	Depositor       *Account  `json:"depositor"`
 	AmountDeposited int       `json:"amountDeposited"`
@@ -72,6 +74,7 @@ type LiquidationEvent struct {
 	Type            EventType `json:"type"`
 	Txhash          string    `json:"txhash"`
 	Blocknumber     int       `json:"blocknumber"`
+	Index           int       `json:"index"`
 	OccuredAt       time.Time `json:"occuredAt"`
 	Borrower        *Account  `json:"borrower"`
 	Liquidator      *Account  `json:"liquidator"`
@@ -134,6 +137,7 @@ type RepayEvent struct {
 	Type          EventType `json:"type"`
 	Txhash        string    `json:"txhash"`
 	Blocknumber   int       `json:"blocknumber"`
+	Index         int       `json:"index"`
 	OccuredAt     time.Time `json:"occuredAt"`
 	Borrower      *Account  `json:"borrower"`
 	AmountRepayed int       `json:"amountRepayed"`
