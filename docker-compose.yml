@@ -18,20 +18,19 @@ services:
     networks:
       - owl
 
-  # scoring:
-  #   image: translucentlink/scoring:0.0.12
-  #   restart: always
-  #   platform: linux/amd64
-  #   command: ["/owl", "server"]
-  #   depends_on:
-  #     - db
-  #   environment:
-  #     - DATABASE_URL=postgres://postgres:hoothoo@db:5432/scoring?sslmode=disable
-  #     - PORT=8080
-  #   ports:
-  #     - 8083:8080
-  #   networks:
-  #     - owl
+  scoring:
+    image: translucentlink/scoring:0.0.22
+    restart: always
+    platform: linux/amd64
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://postgres:hoothoo@db:5432/scoring?sslmode=disable
+      - PORT=8080
+    ports:
+      - 8083:8080
+    networks:
+      - owl
 
 networks:
   owl:

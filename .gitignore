@@ -15,7 +15,6 @@
 # vendor/
 .env
 owl
-build.sh
 owl.m1
 owl.linux
 backup.sql
