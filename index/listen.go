@@ -13,9 +13,16 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
 	"github.com/translucent-link/owl/graph/model"
+	"github.com/translucent-link/owl/utils"
+
+	_ "github.com/lib/pq"
+	_ "github.com/mattes/migrate/database/postgres"
+	_ "github.com/mattes/migrate/source/file"
 )
 
 func init() {
+	utils.SetupDatabase()
+
 	db, err := model.DbConnect()
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "Unable to connect to DB whilst setting up listeners"))

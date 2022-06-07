@@ -9,6 +9,7 @@ services:
       - owl
     environment:
       POSTGRES_PASSWORD: hoothoo
+      POSTGRES_DB: scoring
 
   adminer:
     image: adminer
@@ -19,7 +20,7 @@ services:
       - owl
 
   scoring:
-    image: translucentlink/scoring:0.0.22
+    image: translucentlink/scoring:0.0.24
     restart: always
     platform: linux/amd64
     depends_on:
