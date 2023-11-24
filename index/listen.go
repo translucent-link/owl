@@ -21,7 +21,7 @@ import (
 	_ "github.com/mattes/migrate/source/file"
 )
 
-func init() {
+func init2() {
 	_ = godotenv.Load()
 
 	utils.SetupDatabase()

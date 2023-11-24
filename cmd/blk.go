@@ -2,21 +2,43 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/pkg/errors"
 	"github.com/translucent-link/owl/index"
 	"github.com/urfave/cli/v2"
 )
 
+func lookupEnvVarBasedOnChain(chain string) string {
+	switch chain {
+	case "ethereum":
+		return "ETH_URL"
+	case "polygon":
+		return "POLYGON_URL"
+	case "sepolia":
+		return "SEPOLIA_URL"
+	case "arbitrum":
+		return "ARBITRUM_URL"
+	case "arbitrum_sepolia":
+		return "ARBITRUM_SEPOLIA_URL"
+	case "avalanche":
+		return "AVALANCHE_URL"
+	default:
+		return ""
+	}
+}
+
 func blk(c *cli.Context) error {
 	days := c.Int("days")
-	ethURL := c.String("ethURL")
-	client, err := index.GetClient(ethURL)
+	chain := c.String("chain")
+	rpcURLVar := lookupEnvVarBasedOnChain(chain)
+	client, err := index.GetClient(os.Getenv(rpcURLVar))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Please ensure you have set the %s environment variable", rpcURLVar)
 	}
 	blk, err := index.FindFirstBlock(client, days)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Please ensure you have set the %s environment variable", rpcURLVar)
 	}
 
 	fmt.Println(blk)
@@ -33,11 +55,10 @@ var BlkCommand = &cli.Command{
 			Usage: "how many days to travel back",
 		},
 		&cli.StringFlag{
-			Name:     "ethURL",
-			Aliases:  []string{"u"},
-			Usage:    "wss:// or https:// URL pointing to blockchain node",
+			Name:     "chain",
+			Aliases:  []string{"c"},
+			Usage:    "ethereum, polygon, avalanche, sepolia, arbitrum, or arbitrum_sepolia",
 			Required: true,
-			EnvVars:  []string{"ETH_URL"},
 		},
 	},
 }

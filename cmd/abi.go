@@ -24,7 +24,7 @@ var topicHashCmd = &cli.Command{
 
 var AbiCommand = &cli.Command{
 	Name:  "abi",
-	Usage: "helps with ABI-encoding",
+	Usage: "converts an ABI-event definition into a topic hash",
 	Flags: []cli.Flag{},
 	Subcommands: []*cli.Command{
 

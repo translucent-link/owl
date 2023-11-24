@@ -7,7 +7,7 @@ An EVM blockchain indexer
 Run the migrations
 
 ```bash
-migrate -source file://./migrations -database postgres://localhost:5432/database up
+migrate -source file://./db/migrations -database "postgres://postgres:hoothoo@localhost:5432/owl_dev?sslmode=disable" up
 ```
 
 
@@ -15,15 +15,20 @@ migrate -source file://./migrations -database postgres://localhost:5432/database
 
 To find a block from a year ago
 
-    owl blk --days 365
+    owl blk --chain ethereum --days 365
 
 To find the current block
 
-    owl blk  
+    owl blk  --chain ethereum
 
 To scan from a specific block to the current block
 
     owl scan -a abis/ 12309583 14660614
+
+
+To convert an ABI event into a topic hash
+
+    owl abi topicHash "Transfer(address,address,uint256,bytes)"
 
 
 POLYGON

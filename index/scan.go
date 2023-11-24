@@ -26,7 +26,7 @@ type ScanRequest struct {
 
 var ScanChannel chan ScanRequest
 
-func init() {
+func init3() {
 	ScanChannel = make(chan ScanRequest)
 	log.Println("Initialised  Scan channel")
 	go func() {
