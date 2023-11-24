@@ -6,15 +6,30 @@ import (
 	"log"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
 
 type Stores struct {
+	db               *sqlx.DB
 	Protocol         *ProtocolStore
 	Chain            *ChainStore
 	ProtocolInstance *ProtocolInstanceStore
 	Account          *AccountStore
 	Event            *EventStore
 	Token            *TokenStore
+}
+
+func (s Stores) Close() {
+	s.db.Close()
+}
+
+func NewStores() (Stores, error) {
+	db, err := DbConnect()
+	if err != nil {
+		return Stores{}, errors.Wrap(err, "Unable to setup Stores")
+	}
+	stores := GenerateStores(db)
+	return stores, err
 }
 
 func GenerateStores(db *sqlx.DB) Stores {
@@ -33,6 +48,7 @@ func GenerateStores(db *sqlx.DB) Stores {
 		Account:          accountStore,
 		Event:            eventStore,
 		Token:            tokenStore,
+		db:               db,
 	}
 
 	return stores

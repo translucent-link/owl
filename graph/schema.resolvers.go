@@ -9,6 +9,7 @@ import (
 	"log"
 
 	"github.com/pkg/errors"
+	"github.com/thanhpk/randstr"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	_ "github.com/lib/pq"
@@ -42,71 +43,65 @@ func (r *accountResolver) Events(ctx context.Context, obj *model.Account) ([]mod
 }
 
 func (r *chainResolver) Protocols(ctx context.Context, obj *model.Chain) ([]*model.Protocol, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return []*model.Protocol{}, errors.Wrap(err, "Unable to connect to DB and retrieve protocols")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	return stores.Protocol.AllByChain(obj.ID)
 }
 
 func (r *chainResolver) Tokens(ctx context.Context, obj *model.Chain) ([]*model.Token, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return []*model.Token{}, errors.Wrap(err, "Unable to connect to DB and retrieve tokens")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	metrics.ReqProcessed.Inc()
 	return stores.Token.AllByChain(obj.ID)
 }
 
 func (r *mutationResolver) CreateChain(ctx context.Context, input model.NewChain) (*model.Chain, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return &model.Chain{}, errors.Wrap(err, "Unable to connect to DB and create chain")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	metrics.ReqProcessed.Inc()
 	return stores.Chain.CreateChain(input)
 }
 
 func (r *mutationResolver) CreateProtocol(ctx context.Context, input model.NewProtocol) (*model.Protocol, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return &model.Protocol{}, errors.Wrap(err, "Unable to connect to DB and create protocol")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	metrics.ReqProcessed.Inc()
 	return stores.Protocol.CreateProtocol(input)
 }
 
 func (r *mutationResolver) CreateProtocolInstance(ctx context.Context, input model.NewProtocolInstance) (*model.ProtocolInstance, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return &model.ProtocolInstance{}, errors.Wrap(err, "Unable to connect to DB and create protocol instance")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	metrics.ReqProcessed.Inc()
 	return stores.ProtocolInstance.CreateProtocolInstance(input)
 }
 
 func (r *mutationResolver) AddEventDefnToProtocol(ctx context.Context, input *model.NewEventDefn) (*model.EventDefn, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return &model.EventDefn{}, errors.Wrap(err, "Unable to connect to DB and create event definition")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	topicSignature := []byte(input.AbiSignature)
 	topicHash := crypto.Keccak256Hash(topicSignature)
@@ -116,12 +111,11 @@ func (r *mutationResolver) AddEventDefnToProtocol(ctx context.Context, input *mo
 }
 
 func (r *mutationResolver) ScanProtocolInstance(ctx context.Context, input model.NewScan) (*model.ProtocolInstance, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return &model.ProtocolInstance{}, errors.Wrap(err, "Unable to connect to DB in preparation of scanning")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	protocol, err := stores.Protocol.FindByName(input.Protocol)
 	chain, err := stores.Chain.FindByName(input.Chain)
@@ -159,12 +153,11 @@ func (r *mutationResolver) ScanProtocolInstance(ctx context.Context, input model
 
 func (r *mutationResolver) UpdateTokenList(ctx context.Context, input []*model.TokenInfo) ([]*model.Token, error) {
 	tokens := []*model.Token{}
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return tokens, errors.Wrap(err, "Unable to connect to DB and create event definition")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	for _, tokenInfo := range input {
 		chain, err := stores.Chain.FindByName(tokenInfo.Chain)
@@ -189,82 +182,103 @@ func (r *mutationResolver) UpdateTokenList(ctx context.Context, input []*model.T
 	return tokens, nil
 }
 
+func (r *mutationResolver) UpdateProtocolInstance(ctx context.Context, input *model.UpdateProtocolInstance) (*model.ProtocolInstance, error) {
+	stores, err := model.NewStores()
+	if err != nil {
+		return &model.ProtocolInstance{}, errors.Wrap(err, "Unable to connect to DB in preparation of updating protocol instance")
+	}
+	defer stores.Close()
+
+	protocol, err := stores.Protocol.FindByName(input.Protocol)
+	if err != nil {
+		return &model.ProtocolInstance{}, errors.Wrapf(err, "Unable to find protocol %s", input.Protocol)
+	}
+	chain, err := stores.Chain.FindByName(input.Chain)
+	if err != nil {
+		return &model.ProtocolInstance{}, errors.Wrapf(err, "Unable to find chain %s", input.Chain)
+	}
+
+	protocolInstance, err := stores.ProtocolInstance.FindByProtocolIdAndChainId(protocol.ID, chain.ID)
+	if err != nil {
+		return &model.ProtocolInstance{}, errors.Wrap(err, "Unable to connect to DB and fetch protocol instance")
+	}
+
+	protocolInstance.FirstBlockToRead = input.FirstBlockToRead
+	protocolInstance.LastBlockRead = input.LastBlockRead
+
+	return stores.ProtocolInstance.UpdateProtocolInstance(protocolInstance)
+}
+
 func (r *protocolResolver) ScannableEvents(ctx context.Context, obj *model.Protocol) ([]*model.EventDefn, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return []*model.EventDefn{}, errors.Wrap(err, "Unable to connect to DB and retrieve scannable events")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	return stores.Protocol.AllEventsByProtocol(obj.ID)
 }
 
 func (r *protocolInstanceResolver) Protocol(ctx context.Context, obj *model.ProtocolInstance) (*model.Protocol, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
+
 	if err != nil {
 		return &model.Protocol{}, errors.Wrap(err, "Unable to connect to DB and retrieve scannable events")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	return stores.ProtocolInstance.FindProtocolById(obj.ID)
 }
 
 func (r *protocolInstanceResolver) Chain(ctx context.Context, obj *model.ProtocolInstance) (*model.Chain, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return &model.Chain{}, errors.Wrap(err, "Unable to connect to DB and retrieve scannable events")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	return stores.ProtocolInstance.FindChainById(obj.ID)
 }
 
 func (r *queryResolver) Chains(ctx context.Context) ([]*model.Chain, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return []*model.Chain{}, errors.Wrap(err, "Unable to connect to DB and retrieve chains")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	metrics.ReqProcessed.Inc()
 	return stores.Chain.All()
 }
 
 func (r *queryResolver) Protocols(ctx context.Context) ([]*model.Protocol, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return []*model.Protocol{}, errors.Wrap(err, "Unable to connect to DB and retrieve chains")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	metrics.ReqProcessed.Inc()
 	return stores.Protocol.All()
 }
 
 func (r *queryResolver) ProtocolInstances(ctx context.Context) ([]*model.ProtocolInstance, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return []*model.ProtocolInstance{}, errors.Wrap(err, "Unable to connect to DB and retrieve protocol instances")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	metrics.ReqProcessed.Inc()
 	return stores.ProtocolInstance.All()
 }
 
 func (r *queryResolver) Accounts(ctx context.Context, address *string) ([]*model.Account, error) {
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		return []*model.Account{}, errors.Wrap(err, "Unable to connect to DB and retrieve accounts")
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	if address != nil {
 		acc, err := stores.Account.FindByAddress(*address)
@@ -282,6 +296,30 @@ func (r *queryResolver) Borrowers(ctx context.Context, top *int) ([]*model.Accou
 
 func (r *queryResolver) Liquidators(ctx context.Context, top *int) ([]*model.Account, error) {
 	return []*model.Account{}, fmt.Errorf("not implemented")
+}
+
+func (r *subscriptionResolver) NewEvents(ctx context.Context, typeArg *string) (<-chan []model.AnyEvent, error) {
+	// create an ID and channel for each active subscription
+	id := randstr.Hex(16)
+	eventChannel := make(chan []model.AnyEvent, 1)
+
+	// clean up subscriptions when client disconnects, i.e. when ctx.Done() comes in
+	go func() {
+		<-ctx.Done()
+		r.mu.Lock()
+		delete(r.EventObservers, id)
+		r.mu.Unlock()
+	}()
+
+	// add new channel subscription to existing list of observers
+	r.mu.Lock()
+	r.EventObservers[id] = eventChannel
+	r.mu.Unlock()
+
+	// add initial batch of events. subquent events come in via listen
+	// r.EventObservers[id] <- []
+
+	return eventChannel, nil
 }
 
 // Account returns generated.AccountResolver implementation.
@@ -304,9 +342,20 @@ func (r *Resolver) ProtocolInstance() generated.ProtocolInstanceResolver {
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// Subscription returns generated.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
+
 type accountResolver struct{ *Resolver }
 type chainResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type protocolResolver struct{ *Resolver }
 type protocolInstanceResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.

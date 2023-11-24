@@ -2,6 +2,15 @@
 An EVM blockchain indexer
 
 
+## Local Setup
+
+Run the migrations
+
+```bash
+migrate -source file://./migrations -database postgres://localhost:5432/database up
+```
+
+
 ## Examples
 
 To find a block from a year ago

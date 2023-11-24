@@ -4,11 +4,14 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/negroni"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/translucent-link/owl/graph"
 	"github.com/translucent-link/owl/graph/generated"
@@ -26,6 +29,19 @@ func server(c *cli.Context) error {
 	n.UseHandler(mux)
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	// srv := handler.New(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
+	// 	ChatMessages:  []*model.Message{},
+	// 	ChatObservers: map[string]chan []*model.Message{},
+	// }}))
+	// srv.AddTransport(transport.POST{})
+	srv.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 10 * time.Second,
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
+		},
+	})
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)

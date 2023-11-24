@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/translucent-link/owl/graph/model"
 	"github.com/translucent-link/owl/utils"
@@ -21,14 +22,15 @@ import (
 )
 
 func init() {
+	_ = godotenv.Load()
+
 	utils.SetupDatabase()
 
-	db, err := model.DbConnect()
+	stores, err := model.NewStores()
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "Unable to connect to DB whilst setting up listeners"))
 	}
-	defer db.Close()
-	stores := model.GenerateStores(db)
+	defer stores.Close()
 
 	chains, err := stores.Chain.All()
 	if err != nil {
@@ -37,12 +39,7 @@ func init() {
 
 	for _, chain := range chains {
 
-		if strings.HasPrefix(chain.RPCURL, "wss") {
-			client, err := GetClient(chain.RPCURL)
-			if err != nil {
-				log.Fatal(errors.Wrap(err, "Retrieving EVM client"))
-			}
-
+		if strings.HasPrefix(chain.RPCURL, "ws") {
 			protocols, err := stores.Protocol.AllByChain(chain.ID)
 			if err != nil {
 				log.Fatal(errors.Wrap(err, "Retrieving list of protocols"))
@@ -57,7 +54,7 @@ func init() {
 					log.Fatal(errors.Wrap(err, "Retrieving list of scannable events"))
 				}
 				log.Printf("Listening to %s on %s", protocol.Name, chain.Name)
-				go ListenToEvents(client, chain, protocol, protocolInstance, scannableEvents)
+				go ListenToEvents(chain, protocol, protocolInstance, scannableEvents)
 			}
 		} else {
 			log.Printf("Skipping %s. Requires websockets", chain.Name)
@@ -66,7 +63,7 @@ func init() {
 
 }
 
-func ListenToEvents(client *ethclient.Client, chain *model.Chain, protocol *model.Protocol, protocolInstance *model.ProtocolInstance, scannableEvents []*model.EventDefn) {
+func ListenToEvents(chain *model.Chain, protocol *model.Protocol, protocolInstance *model.ProtocolInstance, scannableEvents []*model.EventDefn) {
 	topics := []common.Hash{}
 	for _, event := range scannableEvents {
 		topics = append(topics, common.HexToHash(event.TopicHashHex))
@@ -77,19 +74,29 @@ func ListenToEvents(client *ethclient.Client, chain *model.Chain, protocol *mode
 		Topics:    [][]common.Hash{topics},
 	}
 
-	logs := make(chan types.Log)
-	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
-	if err != nil {
-		log.Fatal(errors.Wrap(err, "Unable to subscribe to topics"))
-	}
-
+	var client *ethclient.Client
+	var err error
 	for {
-		select {
-		case err := <-sub.Err():
-			log.Println(errors.Wrap(err, "Received err whilst listening to events"))
-		case vLog := <-logs:
-			handleListenLogEvent(vLog, chain, protocol, protocolInstance, scannableEvents)
+		client, err = chain.EthClient()
+		if err != nil {
+			log.Println(errors.Wrapf(err, "Unable to connect to %s", chain.RPCURL).Error())
+			break
 		}
+		logs := make(chan types.Log)
+		sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
+		if err != nil {
+			log.Fatal(errors.Wrap(err, "Unable to subscribe to topics"))
+		}
+
+		for {
+			select {
+			case err := <-sub.Err():
+				log.Println(errors.Wrap(err, "Received err whilst listening to events"))
+			case vLog := <-logs:
+				handleListenLogEvent(vLog, chain, protocol, protocolInstance, scannableEvents)
+			}
+		}
+
 	}
 }
 

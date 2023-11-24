@@ -123,15 +123,6 @@ type Protocol struct {
 	ScannableEvents []*EventDefn `json:"scannableEvents"`
 }
 
-type ProtocolInstance struct {
-	ID               int       `json:"id"`
-	Protocol         *Protocol `json:"protocol"`
-	Chain            *Chain    `json:"chain"`
-	ContractAddress  string    `json:"contractAddress"`
-	FirstBlockToRead int       `json:"firstBlockToRead"`
-	LastBlockRead    int       `json:"lastBlockRead"`
-}
-
 type RepayEvent struct {
 	ID            int       `json:"id"`
 	Type          EventType `json:"type"`
@@ -161,6 +152,14 @@ type TokenInfo struct {
 	Ticker   string `json:"ticker"`
 	Chain    string `json:"chain"`
 	Decimals int    `json:"decimals"`
+}
+
+type UpdateProtocolInstance struct {
+	Protocol         string `json:"protocol"`
+	Chain            string `json:"chain"`
+	ContractAddress  string `json:"contractAddress"`
+	FirstBlockToRead int    `json:"firstBlockToRead"`
+	LastBlockRead    int    `json:"lastBlockRead"`
 }
 
 type EventType string

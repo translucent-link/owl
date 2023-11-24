@@ -45,6 +45,14 @@ input NewProtocolInstance {
   firstBlockToRead: Int!
 }
 
+input UpdateProtocolInstance {
+  protocol: String!
+  chain: String!
+  contractAddress: String!
+  firstBlockToRead: Int!
+  lastBlockRead: Int!
+}
+
 type Query {
   chains: [Chain!]!
   protocols: [Protocol!]!
@@ -61,6 +69,7 @@ type Mutation {
   addEventDefnToProtocol(input: NewEventDefn): EventDefn!
   scanProtocolInstance(input: NewScan!): ProtocolInstance
   updateTokenList(input: [TokenInfo]!): [Token]!
+  updateProtocolInstance(input: UpdateProtocolInstance): ProtocolInstance!
 }
 
 input TokenInfo {
@@ -178,3 +187,6 @@ type Token {
   decimals: Int!
 }
 
+type Subscription {
+  newEvents(type: String): [AnyEvent]!
+}

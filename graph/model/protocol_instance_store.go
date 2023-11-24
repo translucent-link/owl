@@ -1,8 +1,9 @@
 package model
 
 import (
-	"errors"
 	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -89,4 +90,19 @@ func (s *ProtocolInstanceStore) UpdateLastBlockRead(protocolInstanceId int, last
 		return errors.New(fmt.Sprintf("Failed to update lastBlockRead=%d on protocolInstance %d", lastBlock, protocolInstanceId))
 	}
 	return nil
+}
+
+func (s *ProtocolInstanceStore) UpdateProtocolInstance(protocolInstance *ProtocolInstance) (*ProtocolInstance, error) {
+	result, err := s.db.Exec("update protocol_instances set contractAddress=$4, lastBlockRead=$2::int, firstBlockToRead=$3::int where id=$1", protocolInstance.ID, protocolInstance.LastBlockRead, protocolInstance.FirstBlockToRead, protocolInstance.ContractAddress)
+	if err != nil {
+		return protocolInstance, errors.Wrap(err, "Attempting to update protocol instance")
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return protocolInstance, err
+	}
+	if rows == 0 {
+		return protocolInstance, errors.New(fmt.Sprintf("Failed to update protocolInstance %d", protocolInstance.ID))
+	}
+	return s.FindById(protocolInstance.ID)
 }

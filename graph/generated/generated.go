@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -43,6 +44,7 @@ type ResolverRoot interface {
 	Protocol() ProtocolResolver
 	ProtocolInstance() ProtocolInstanceResolver
 	Query() QueryResolver
+	Subscription() SubscriptionResolver
 }
 
 type DirectiveRoot struct {
@@ -116,6 +118,7 @@ type ComplexityRoot struct {
 		CreateProtocol         func(childComplexity int, input model.NewProtocol) int
 		CreateProtocolInstance func(childComplexity int, input model.NewProtocolInstance) int
 		ScanProtocolInstance   func(childComplexity int, input model.NewScan) int
+		UpdateProtocolInstance func(childComplexity int, input *model.UpdateProtocolInstance) int
 		UpdateTokenList        func(childComplexity int, input []*model.TokenInfo) int
 	}
 
@@ -156,6 +159,10 @@ type ComplexityRoot struct {
 		Type          func(childComplexity int) int
 	}
 
+	Subscription struct {
+		NewEvents func(childComplexity int, typeArg *string) int
+	}
+
 	Token struct {
 		Address  func(childComplexity int) int
 		Decimals func(childComplexity int) int
@@ -179,6 +186,7 @@ type MutationResolver interface {
 	AddEventDefnToProtocol(ctx context.Context, input *model.NewEventDefn) (*model.EventDefn, error)
 	ScanProtocolInstance(ctx context.Context, input model.NewScan) (*model.ProtocolInstance, error)
 	UpdateTokenList(ctx context.Context, input []*model.TokenInfo) ([]*model.Token, error)
+	UpdateProtocolInstance(ctx context.Context, input *model.UpdateProtocolInstance) (*model.ProtocolInstance, error)
 }
 type ProtocolResolver interface {
 	ScannableEvents(ctx context.Context, obj *model.Protocol) ([]*model.EventDefn, error)
@@ -194,6 +202,9 @@ type QueryResolver interface {
 	Accounts(ctx context.Context, address *string) ([]*model.Account, error)
 	Borrowers(ctx context.Context, top *int) ([]*model.Account, error)
 	Liquidators(ctx context.Context, top *int) ([]*model.Account, error)
+}
+type SubscriptionResolver interface {
+	NewEvents(ctx context.Context, typeArg *string) (<-chan []model.AnyEvent, error)
 }
 
 type executableSchema struct {
@@ -572,6 +583,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ScanProtocolInstance(childComplexity, args["input"].(model.NewScan)), true
 
+	case "Mutation.updateProtocolInstance":
+		if e.complexity.Mutation.UpdateProtocolInstance == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateProtocolInstance_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateProtocolInstance(childComplexity, args["input"].(*model.UpdateProtocolInstance)), true
+
 	case "Mutation.updateTokenList":
 		if e.complexity.Mutation.UpdateTokenList == nil {
 			break
@@ -774,6 +797,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.RepayEvent.Type(childComplexity), true
 
+	case "Subscription.newEvents":
+		if e.complexity.Subscription.NewEvents == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_newEvents_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.NewEvents(childComplexity, args["type"].(*string)), true
+
 	case "Token.address":
 		if e.complexity.Token.Address == nil {
 			break
@@ -823,6 +858,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewProtocolInstance,
 		ec.unmarshalInputNewScan,
 		ec.unmarshalInputTokenInfo,
+		ec.unmarshalInputUpdateProtocolInstance,
 	)
 	first := true
 
@@ -851,6 +887,23 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
 			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
+	case ast.Subscription:
+		next := ec._Subscription(ctx, rc.Operation.SelectionSet)
+
+		var buf bytes.Buffer
+		return func(ctx context.Context) *graphql.Response {
+			buf.Reset()
+			data := next(ctx)
+
+			if data == nil {
+				return nil
+			}
 			data.MarshalGQL(&buf)
 
 			return &graphql.Response{
@@ -930,6 +983,14 @@ input NewProtocolInstance {
   firstBlockToRead: Int!
 }
 
+input UpdateProtocolInstance {
+  protocol: String!
+  chain: String!
+  contractAddress: String!
+  firstBlockToRead: Int!
+  lastBlockRead: Int!
+}
+
 type Query {
   chains: [Chain!]!
   protocols: [Protocol!]!
@@ -946,6 +1007,7 @@ type Mutation {
   addEventDefnToProtocol(input: NewEventDefn): EventDefn!
   scanProtocolInstance(input: NewScan!): ProtocolInstance
   updateTokenList(input: [TokenInfo]!): [Token]!
+  updateProtocolInstance(input: UpdateProtocolInstance): ProtocolInstance!
 }
 
 input TokenInfo {
@@ -1063,7 +1125,9 @@ type Token {
   decimals: Int!
 }
 
-`, BuiltIn: false},
+type Subscription {
+  newEvents(type: String): [AnyEvent]!
+}`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -1146,6 +1210,21 @@ func (ec *executionContext) field_Mutation_scanProtocolInstance_args(ctx context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateProtocolInstance_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.UpdateProtocolInstance
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalOUpdateProtocolInstance2ᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐUpdateProtocolInstance(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateTokenList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1218,6 +1297,21 @@ func (ec *executionContext) field_Query_liquidators_args(ctx context.Context, ra
 		}
 	}
 	args["top"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_newEvents_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["type"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["type"] = arg0
 	return args, nil
 }
 
@@ -3654,6 +3748,75 @@ func (ec *executionContext) fieldContext_Mutation_updateTokenList(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_updateProtocolInstance(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateProtocolInstance(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateProtocolInstance(rctx, fc.Args["input"].(*model.UpdateProtocolInstance))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ProtocolInstance)
+	fc.Result = res
+	return ec.marshalNProtocolInstance2ᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐProtocolInstance(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateProtocolInstance(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ProtocolInstance_id(ctx, field)
+			case "protocol":
+				return ec.fieldContext_ProtocolInstance_protocol(ctx, field)
+			case "chain":
+				return ec.fieldContext_ProtocolInstance_chain(ctx, field)
+			case "contractAddress":
+				return ec.fieldContext_ProtocolInstance_contractAddress(ctx, field)
+			case "firstBlockToRead":
+				return ec.fieldContext_ProtocolInstance_firstBlockToRead(ctx, field)
+			case "lastBlockRead":
+				return ec.fieldContext_ProtocolInstance_lastBlockRead(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProtocolInstance", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateProtocolInstance_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Protocol_id(ctx context.Context, field graphql.CollectedField, obj *model.Protocol) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Protocol_id(ctx, field)
 	if err != nil {
@@ -5028,6 +5191,71 @@ func (ec *executionContext) fieldContext_RepayEvent_token(ctx context.Context, f
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Token", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_newEvents(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	fc, err := ec.fieldContext_Subscription_newEvents(ctx, field)
+	if err != nil {
+		return nil
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = nil
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Subscription().NewEvents(rctx, fc.Args["type"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return nil
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return nil
+	}
+	return func(ctx context.Context) graphql.Marshaler {
+		res, ok := <-resTmp.(<-chan []model.AnyEvent)
+		if !ok {
+			return nil
+		}
+		return graphql.WriterFunc(func(w io.Writer) {
+			w.Write([]byte{'{'})
+			graphql.MarshalString(field.Alias).MarshalGQL(w)
+			w.Write([]byte{':'})
+			ec.marshalNAnyEvent2ᚕgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐAnyEvent(ctx, field.Selections, res).MarshalGQL(w)
+			w.Write([]byte{'}'})
+		})
+	}
+}
+
+func (ec *executionContext) fieldContext_Subscription_newEvents(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type AnyEvent does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_newEvents_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -7261,6 +7489,61 @@ func (ec *executionContext) unmarshalInputTokenInfo(ctx context.Context, obj int
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateProtocolInstance(ctx context.Context, obj interface{}) (model.UpdateProtocolInstance, error) {
+	var it model.UpdateProtocolInstance
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "protocol":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("protocol"))
+			it.Protocol, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "chain":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("chain"))
+			it.Chain, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "contractAddress":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contractAddress"))
+			it.ContractAddress, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "firstBlockToRead":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstBlockToRead"))
+			it.FirstBlockToRead, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "lastBlockRead":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastBlockRead"))
+			it.LastBlockRead, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -7879,6 +8162,15 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "updateProtocolInstance":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateProtocolInstance(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8303,6 +8595,26 @@ func (ec *executionContext) _RepayEvent(ctx context.Context, sel ast.SelectionSe
 		return graphql.Null
 	}
 	return out
+}
+
+var subscriptionImplementors = []string{"Subscription"}
+
+func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet) func(ctx context.Context) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Subscription",
+	})
+	if len(fields) != 1 {
+		ec.Errorf(ctx, "must subscribe to exactly one stream")
+		return nil
+	}
+
+	switch fields[0].Name {
+	case "newEvents":
+		return ec._Subscription_newEvents(ctx, fields[0])
+	default:
+		panic("unknown field " + strconv.Quote(fields[0].Name))
+	}
 }
 
 var tokenImplementors = []string{"Token"}
@@ -9559,6 +9871,14 @@ func (ec *executionContext) unmarshalOTokenInfo2ᚖgithubᚗcomᚋtranslucentᚑ
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputTokenInfo(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOUpdateProtocolInstance2ᚖgithubᚗcomᚋtranslucentᚑlinkᚋowlᚋgraphᚋmodelᚐUpdateProtocolInstance(ctx context.Context, v interface{}) (*model.UpdateProtocolInstance, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUpdateProtocolInstance(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
