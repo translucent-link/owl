@@ -56,6 +56,7 @@ func setupEventDefns(db *sqlx.DB) {
 
 func setupChains(db *sqlx.DB) {
 	db.MustExec("insert into chains (id, name, rpcUrl, blockFetchSize) values ($1, $2, $3, $4)", 1, "Avalanche", "https://api.avax.network/ext/bc/C/rpc", 2048)
+	db.MustExec("insert into chains (id, name, rpcUrl, blockFetchSize) values ($1, $2, $3, $4)", 2, "Sepolia", "https://rpc.sepolia.dev", 2048)
 }
 
 func setupProtocolInstances(db *sqlx.DB) {

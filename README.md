@@ -7,7 +7,9 @@ An EVM blockchain indexer
 Run the migrations
 
 ```bash
-migrate -source file://./db/migrations -database "postgres://postgres:hoothoo@localhost:5432/owl_dev?sslmode=disable" up
+migrate -source file://./db/migrations -database "postgres://postgres:hoothoo@localhost:5432/owl_dev?sslmode=disable" 
+up
+migrate -source file://./db/migrations -database "postgres://postgres:hoothoo@localhost:5432/owl_test?sslmode=disable" up
 ```
 
 
