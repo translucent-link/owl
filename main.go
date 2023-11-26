@@ -20,6 +20,9 @@ func main() {
 			cmd.ScanCommand,
 			cmd.ServerCommand,
 			cmd.AbiCommand,
+			cmd.ChainCommand,
+			cmd.ProtocolCommand,
+			cmd.ProtocolInstanceCommand,
 		},
 	}
 

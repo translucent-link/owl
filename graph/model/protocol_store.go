@@ -26,6 +26,11 @@ func (s *ProtocolStore) FindByName(name string) (*Protocol, error) {
 	return &protocol, err
 }
 
+func (s *ProtocolStore) DeleteByName(name string) error {
+	_, err := s.db.Exec("delete from protocols where name=$1", name)
+	return err
+}
+
 func (s *ProtocolStore) CreateProtocol(input NewProtocol) (*Protocol, error) {
 	var insertedId int
 	err := s.db.QueryRowx("insert into protocols (name, abi) values ($1, $2) returning id", input.Name, input.Abi).Scan(&insertedId)

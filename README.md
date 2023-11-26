@@ -30,6 +30,14 @@ To convert an ABI event into a topic hash
 
     owl abi topicHash "Transfer(address,address,uint256,bytes)"
 
+To register a new chain
+
+    owl chain register --name polygon --url wss://polygon-mainnet.g.alchemy.com/v2/<APIKEY> --chainID 137 --nativeToken 0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270 --nativeTokenDecimals 18 --nativeTokenSymbol MATIC
+
+To delete a chain
+
+    owl chain delete --name polygon
+
 
 POLYGON
 

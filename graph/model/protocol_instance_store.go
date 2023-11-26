@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/pkg/errors"
 
 	"github.com/jmoiron/sqlx"
@@ -20,15 +21,35 @@ func NewProtocolInstanceStore(db *sqlx.DB) *ProtocolInstanceStore {
 	return &ProtocolInstanceStore{db: db, protocolStore: ps, chainStore: cs}
 }
 
+func (s *ProtocolInstanceStore) rehydrateChainAndProtocol(protocolInstance *ProtocolInstance) error {
+	chain, err := s.chainStore.FindById(protocolInstance.ChainID)
+	if err != nil {
+		log.Warn("Unable to find associated chain", "chainId", protocolInstance.ChainID)
+	}
+	protocol, err := s.protocolStore.FindById(protocolInstance.ProtocolID)
+	if err != nil {
+		log.Warn("Unable to find associated protocol", "protocolId", protocolInstance.ProtocolID)
+	}
+	protocolInstance.Chain = chain
+	protocolInstance.Protocol = protocol
+	return err
+}
+
 func (s *ProtocolInstanceStore) FindById(id int) (*ProtocolInstance, error) {
 	var protocolInstance ProtocolInstance
-	err := s.db.Get(&protocolInstance, "select id, contractAddress, firstBlockToRead, lastBlockRead from protocol_instances where id=$1", id)
+	err := s.db.Get(&protocolInstance, "select * from protocol_instances where id=$1", id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to find protocol instance with id %d", id)
+	}
+
+	s.rehydrateChainAndProtocol(&protocolInstance)
 	return &protocolInstance, err
 }
 
 func (s *ProtocolInstanceStore) FindByProtocolIdAndChainId(protocolId int, chainId int) (*ProtocolInstance, error) {
 	var protocolInstance ProtocolInstance
-	err := s.db.Get(&protocolInstance, "select id, contractAddress, firstBlockToRead, lastBlockRead from protocol_instances where protocolId=$1 and chainId=$2", protocolId, chainId)
+	err := s.db.Get(&protocolInstance, "select * from protocol_instances where protocolId=$1 and chainId=$2", protocolId, chainId)
+	s.rehydrateChainAndProtocol(&protocolInstance)
 	return &protocolInstance, err
 }
 
@@ -52,6 +73,29 @@ func (s *ProtocolInstanceStore) FindChainById(id int) (*Chain, error) {
 	return s.chainStore.FindById(chainId)
 }
 
+func (s *ProtocolInstanceStore) DeleteByProtocolAndChain(protocolName string, chainName string) error {
+	protocol, err := s.protocolStore.FindByName(protocolName)
+	if err != nil {
+		return errors.New("Unable to find protocol")
+	}
+	chain, err := s.chainStore.FindByName(chainName)
+	if err != nil {
+		return errors.New("Unable to find chain")
+	}
+	result, err := s.db.Exec("delete from protocol_instances where protocolId=$1 and chainId=$2", protocol.ID, chain.ID)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New(fmt.Sprintf("Failed to delete protocol instance %s on %s", protocolName, chainName))
+	}
+	return nil
+}
+
 func (s *ProtocolInstanceStore) CreateProtocolInstance(input NewProtocolInstance) (*ProtocolInstance, error) {
 	var insertedId int
 
@@ -73,7 +117,14 @@ func (s *ProtocolInstanceStore) CreateProtocolInstance(input NewProtocolInstance
 
 func (s *ProtocolInstanceStore) All() ([]*ProtocolInstance, error) {
 	protocolInstances := []*ProtocolInstance{}
-	err := s.db.Select(&protocolInstances, "SELECT id, contractAddress FROM protocol_instances ORDER BY id ASC")
+	err := s.db.Select(&protocolInstances, "SELECT * FROM protocol_instances ORDER BY id ASC")
+	if err != nil {
+		return protocolInstances, errors.Wrapf(err, "Unable to find protocol instances")
+	}
+	for _, protocolInstance := range protocolInstances {
+		fmt.Printf("Rehydrating protocol instance %v\n", protocolInstance)
+		s.rehydrateChainAndProtocol(protocolInstance)
+	}
 	return protocolInstances, err
 }
 

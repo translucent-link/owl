@@ -7,7 +7,7 @@ import (
 
 var (
 	ReqProcessed = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "tlscoring_processed_reqs_total",
+		Name: "owl_processed_reqs_total",
 		Help: "The total number of processed requests",
 	})
 )

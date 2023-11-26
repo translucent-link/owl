@@ -24,6 +24,11 @@ func (s *ChainStore) FindByName(name string) (*Chain, error) {
 	return &chain, err
 }
 
+func (s *ChainStore) DeleteByName(name string) error {
+	_, err := s.db.Exec("delete from chains where name=$1", name)
+	return err
+}
+
 func (s *ChainStore) CreateChain(input NewChain) (*Chain, error) {
 	var insertedId int
 	err := s.db.QueryRowx("insert into chains (name, rpcUrl, blockFetchSize) values ($1,$2,$3) returning id", input.Name, input.RPCURL, input.BlockFetchSize).Scan(&insertedId)

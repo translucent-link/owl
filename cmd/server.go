@@ -29,11 +29,6 @@ func server(c *cli.Context) error {
 	n.UseHandler(mux)
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
-	// srv := handler.New(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
-	// 	ChatMessages:  []*model.Message{},
-	// 	ChatObservers: map[string]chan []*model.Message{},
-	// }}))
-	// srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.Websocket{
 		KeepAlivePingInterval: 10 * time.Second,
 		Upgrader: websocket.Upgrader{
@@ -60,6 +55,7 @@ var ServerCommand = &cli.Command{
 		&cli.IntFlag{
 			Name:  "port",
 			Usage: "what port the server runs on",
+			Value: 8080,
 		},
 	},
 }
