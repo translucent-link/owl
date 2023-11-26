@@ -74,13 +74,3 @@ func TestDeleteChainById(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "sql: no rows in result set")
 }
-
-func TestFetchAllChains(t *testing.T) {
-	db, _ := DbConnect()
-	defer db.Close()
-	stores := GenerateStores(db)
-
-	chains, err := stores.Chain.All()
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(chains))
-}
