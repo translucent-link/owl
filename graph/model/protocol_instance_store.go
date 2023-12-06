@@ -103,6 +103,7 @@ func (s *ProtocolInstanceStore) CreateProtocolInstance(input NewProtocolInstance
 	if err != nil {
 		return &ProtocolInstance{}, errors.New("Unable to find protocol")
 	}
+
 	chain, err := s.chainStore.FindByName(input.Chain)
 	if err != nil {
 		return &ProtocolInstance{}, errors.New("Unable to find chain")
@@ -122,7 +123,6 @@ func (s *ProtocolInstanceStore) All() ([]*ProtocolInstance, error) {
 		return protocolInstances, errors.Wrapf(err, "Unable to find protocol instances")
 	}
 	for _, protocolInstance := range protocolInstances {
-		fmt.Printf("Rehydrating protocol instance %v\n", protocolInstance)
 		s.rehydrateChainAndProtocol(protocolInstance)
 	}
 	return protocolInstances, err

@@ -11,7 +11,7 @@ build:
 	$(GOBUILD) -o $(BINARY_NAME) -v
 
 test:
-	${ENV_VARS} $(GOTEST) -v ./...
+	${ENV_VARS} $(GOTEST) -v ./... 
 
 clean:
 	rm -f $(BINARY_NAME)

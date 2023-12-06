@@ -17,7 +17,7 @@ func TestAllChains(t *testing.T) {
 
 	chains, err := stores.Chain.All()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(chains))
+	assert.Equal(t, 3, len(chains))
 }
 
 func TestCreateChain(t *testing.T) {

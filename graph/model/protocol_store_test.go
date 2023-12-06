@@ -17,7 +17,7 @@ func TestAllProtocols(t *testing.T) {
 
 	protocols, err := stores.Protocol.All()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(protocols))
+	assert.Equal(t, 3, len(protocols))
 }
 
 func TestCreateProtocol(t *testing.T) {
@@ -65,14 +65,14 @@ func TestFindProtocolById(t *testing.T) {
 	assert.NotEqual(t, 0, protocol.ID)
 }
 
-func TestDeleteProtocolById(t *testing.T) {
+func TestDeleteProtocolByName(t *testing.T) {
 	db, _ := DbConnect()
 	defer db.Close()
 	stores := GenerateStores(db)
 
-	err := stores.Protocol.DeleteByName("AavePlus")
+	err := stores.Protocol.DeleteByName("AaveToBeDeleted")
 	assert.Nil(t, err)
-	_, err = stores.Protocol.FindByName("AavePlus")
+	_, err = stores.Protocol.FindByName("AaveToBeDeleted")
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "sql: no rows in result set")
+	assert.Equal(t, "sql: no rows in result set", err.Error())
 }
